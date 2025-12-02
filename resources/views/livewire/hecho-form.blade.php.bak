@@ -1,0 +1,305 @@
+<div>
+    {{-- DEBUG --}}
+    @if($isEdit)
+        <div class="mb-4 p-4 bg-yellow-100 dark:bg-yellow-900">
+            <strong>DEBUG:</strong><br>
+            IsEdit: {{ $isEdit ? 'SI' : 'NO' }}<br>
+            Fecha: {{ $fecha_hecho }}<br>
+            Categoria ID: {{ $categoria_id }}<br>
+            Observaciones: {{ $observaciones }}<br>
+        </div>
+    @endif
+
+    <form wire:submit.prevent="save" class="space-y-6">
+        {{-- Datos Básicos --}}
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Datos del Hecho</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha del Hecho *</label>
+                        <input type="date"
+                            name="fecha_hecho"
+                            value="{{ $fecha_hecho }}"
+                            wire:model.live="fecha_hecho"
+                            required
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                        @error('fecha_hecho') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría *</label>
+                        <select wire:model.live="categoria_id" required
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="">Seleccione una categoría</option>
+                            @foreach($categorias as $categoria)
+                                <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('categoria_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subcategoría</label>
+                        <select wire:model="subcategoria_id" {{ empty($subcategorias) ? 'disabled' : '' }}
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="">Seleccione subcategoría</option>
+                            @foreach($subcategorias as $subcategoria)
+                                <option value="{{ $subcategoria->id }}" @selected($subcategoria->id == $subcategoria_id)>{{ $subcategoria->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('subcategoria_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Horario</label>
+                        <select wire:model="horario_id" {{ empty($horarios) ? 'disabled' : '' }}
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="">Seleccione horario</option>
+                            @foreach($horarios as $horario)
+                                <option value="{{ $horario->id }}" @selected($horario->id == $horario_id)>{{ $horario->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('horario_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Involucrado 1 --}}
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Involucrado 1</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+                        <select wire:model="tipo_involucrado1_id" {{ empty($tiposInvolucrados) ? 'disabled' : '' }}
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="" {{ $$model == '' ? 'selected' : '' }}>Seleccione tipo</option>
+                            @foreach($tiposInvolucrados as $tipo)
+                                <option value="{{ $tipo->id }}" {{ $$model == '{{ $tipo->id }}' ? 'selected' : '' }}>{{ $tipo->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('tipo_involucrado1_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sexo *</label>
+                        <select wire:model="sexo_involucrado1" required
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="Varon" {{ $$model == 'Varon' ? 'selected' : '' }}>Varón</option>
+                            <option value="Mujer" {{ $$model == 'Mujer' ? 'selected' : '' }}>Mujer</option>
+                            <option value="Sin datos" {{ $$model == 'Sin datos' ? 'selected' : '' }}>Sin datos</option>
+                        </select>
+                        @error('sexo_involucrado1') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Edad</label>
+                        <input type="number" value="{{ $edad_involucrado1 }}" wire:model="edad_involucrado1" min="0" max="120"
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                        @error('edad_involucrado1') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Involucrado 2 --}}
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Involucrado 2</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+                        <select wire:model="tipo_involucrado2_id" {{ empty($tiposInvolucrados) ? 'disabled' : '' }}
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="" {{ $$model == '' ? 'selected' : '' }}>Seleccione tipo</option>
+                            @foreach($tiposInvolucrados as $tipo)
+                                <option value="{{ $tipo->id }}" {{ $$model == '{{ $tipo->id }}' ? 'selected' : '' }}>{{ $tipo->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('tipo_involucrado2_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sexo *</label>
+                        <select wire:model="sexo_involucrado2" required
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="Varon" {{ $$model == 'Varon' ? 'selected' : '' }}>Varón</option>
+                            <option value="Mujer" {{ $$model == 'Mujer' ? 'selected' : '' }}>Mujer</option>
+                            <option value="Sin datos" {{ $$model == 'Sin datos' ? 'selected' : '' }}>Sin datos</option>
+                        </select>
+                        @error('sexo_involucrado2') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Edad</label>
+                        <input type="number" value="{{ $edad_involucrado2 }}" wire:model="edad_involucrado2" min="0" max="120"
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                        @error('edad_involucrado2') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Ubicación --}}
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Ubicación</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Domicilio *</label>
+                        <select wire:model="tipo_domicilio" required
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="Vivienda" {{ $$model == 'Vivienda' ? 'selected' : '' }}>Vivienda</option>
+                            <option value="Comercio" {{ $$model == 'Comercio' ? 'selected' : '' }}>Comercio</option>
+                            <option value="Via Publica" {{ $$model == 'Via Publica' ? 'selected' : '' }}>Vía Pública</option>
+                            <option value="Establecimiento Publico" {{ $$model == 'Establecimiento Publico' ? 'selected' : '' }}>Establecimiento Público</option>
+                            <option value="Establecimiento Educativo" {{ $$model == 'Establecimiento Educativo' ? 'selected' : '' }}>Establecimiento Educativo</option>
+                            <option value="Sin datos" {{ $$model == 'Sin datos' ? 'selected' : '' }}>Sin datos</option>
+                        </select>
+                        @error('tipo_domicilio') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Zona *</label>
+                        <select wire:model="zona" required
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="Centro" {{ $$model == 'Centro' ? 'selected' : '' }}>Centro</option>
+                            <option value="Barrio" {{ $$model == 'Barrio' ? 'selected' : '' }}>Barrio</option>
+                            <option value="Campo" {{ $$model == 'Campo' ? 'selected' : '' }}>Campo</option>
+                            <option value="Sin datos" {{ $$model == 'Sin datos' ? 'selected' : '' }}>Sin datos</option>
+                        </select>
+                        @error('zona') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Barrio</label>
+                        <select wire:model="barrio_id"
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                            <option value="" {{ $$model == '' ? 'selected' : '' }}>Seleccione barrio</option>
+                            @foreach($barrios as $barrio)
+                                <option value="{{ $barrio->id }}" {{ $$model == '{{ $barrio->id }}' ? 'selected' : '' }}>{{ $barrio->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('barrio_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ubicación en el Mapa (clic para marcar)</label>
+                    <div id="map" style="height: 400px;" class="rounded-lg border border-gray-300 dark:border-gray-600"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitud</label>
+                        <input type="text" value="{{ $latitud }}" wire:model="latitud" id="latitud" readonly
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm bg-gray-100 dark:bg-gray-700">
+                        @error('latitud') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitud</label>
+                        <input type="text" value="{{ $longitud }}" wire:model="longitud" id="longitud" readonly
+                            class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm bg-gray-100 dark:bg-gray-700">
+                        @error('longitud') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Observaciones --}}
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Observaciones</h3>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observaciones</label>
+                    <textarea wire:model="observaciones" rows="4"
+                        class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm"></textarea>
+                    @error('observaciones') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                </div>
+            </div>
+        </div>
+
+        {{-- Botones --}}
+        <div class="flex justify-end space-x-3">
+            <a href="{{ route('hechos.index') }}"
+                class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-500 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-25 transition ease-in-out duration-150">
+                Cancelar
+            </a>
+            <button type="submit"
+                class="inline-flex items-center px-4 py-2 bg-gray-800 dark:bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-white dark:text-gray-800 uppercase tracking-widest hover:bg-gray-700 dark:hover:bg-white focus:bg-gray-700 dark:focus:bg-white active:bg-gray-900 dark:active:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
+                {{ $isEdit ? 'Actualizar' : 'Guardar' }} Hecho
+            </button>
+        </div>
+    </form>
+
+    @push('scripts')
+    <script>
+        let map;
+        let marker;
+
+        function initMap() {
+            // Coordenadas por defecto (puedes cambiarlas por las de tu municipio)
+            const defaultLat = @this.latitud || -31.4135;
+            const defaultLng = @this.longitud || -64.1888;
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: parseFloat(defaultLat), lng: parseFloat(defaultLng) },
+                zoom: 13
+            });
+
+            // Si ya hay coordenadas, agregar marcador
+            if (@this.latitud && @this.longitud) {
+                marker = new google.maps.Marker({
+                    position: { lat: parseFloat(@this.latitud), lng: parseFloat(@this.longitud) },
+                    map: map,
+                    draggable: true
+                });
+
+                marker.addListener('dragend', function(event) {
+                    updateCoordinates(event.latLng.lat(), event.latLng.lng());
+                });
+            }
+
+            // Click en el mapa para agregar/mover marcador
+            map.addListener('click', function(event) {
+                if (marker) {
+                    marker.setPosition(event.latLng);
+                } else {
+                    marker = new google.maps.Marker({
+                        position: event.latLng,
+                        map: map,
+                        draggable: true
+                    });
+
+                    marker.addListener('dragend', function(event) {
+                        updateCoordinates(event.latLng.lat(), event.latLng.lng());
+                    });
+                }
+
+                updateCoordinates(event.latLng.lat(), event.latLng.lng());
+            });
+        }
+
+        function updateCoordinates(lat, lng) {
+            @this.set('latitud', lat.toFixed(8));
+            @this.set('longitud', lng.toFixed(8));
+            document.getElementById('latitud').value = lat.toFixed(8);
+            document.getElementById('longitud').value = lng.toFixed(8);
+        }
+
+        // Cargar Google Maps API
+        window.initMap = initMap;
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap">
+    </script>
+    @endpush
+</div>
