@@ -552,9 +552,9 @@
             // Marcar que se está cargando
             window.googleMapsLoading = true;
 
-            console.log('Cargando Google Maps...');
+            console.log('Cargando Google Maps con librería places...');
             const script = document.createElement('script');
-            script.src = 'https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_api_key') }}&libraries=visualization';
+            script.src = 'https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_api_key') }}&libraries=places&loading=async';
             script.async = true;
             script.defer = true;
             script.onload = () => {
@@ -575,7 +575,23 @@
         console.log('window.google:', typeof window.google);
         console.log('window.Livewire:', typeof window.Livewire);
 
-        document.addEventListener('livewire:navigated', () => {
+        // Variables globales para estadísticas
+        if (typeof window.estadisticasData === 'undefined') {
+            window.estadisticasData = {
+                mapaCalor: null,
+                mapaMarkers: null,
+                heatmap: null,
+                heatmapCircles: [],
+                markers: [],
+                chartCategoria: null,
+                chartBarrio: null,
+                chartTemporal: null,
+                chartAccion: null,
+                chartDesenlace: null
+            };
+        }
+
+        document.addEventListener('livewire:navigated', function() {
             console.log('Livewire navigated event fired');
 
             // Solo ejecutar si estamos en la página de estadísticas
@@ -584,28 +600,39 @@
                 return;
             }
 
-            let mapaCalor, mapaMarkers, heatmap, markers = [];
-            let chartCategoria, chartBarrio, chartTemporal, chartAccion, chartDesenlace;
+            // Limpiar instancias anteriores
+            if (window.estadisticasData.heatmap) {
+                window.estadisticasData.heatmap.setMap(null);
+                window.estadisticasData.heatmap = null;
+            }
+            if (window.estadisticasData.heatmapCircles) {
+                window.estadisticasData.heatmapCircles.forEach(function(circle) {
+                    circle.setMap(null);
+                });
+                window.estadisticasData.heatmapCircles = [];
+            }
+            if (window.estadisticasData.markers) {
+                window.estadisticasData.markers.forEach(function(marker) {
+                    marker.setMap(null);
+                });
+                window.estadisticasData.markers = [];
+            }
+            window.estadisticasData.mapaCalor = null;
+            window.estadisticasData.mapaMarkers = null;
 
             function inicializarMapas() {
                 // Centro en las coordenadas especificadas
                 const centro = { lat: -34.65041121106401, lng: -59.43203992015478 };
 
                 // Mapa de Calor
-                mapaCalor = new google.maps.Map(document.getElementById('mapaCalor'), {
+                window.estadisticasData.mapaCalor = new google.maps.Map(document.getElementById('mapaCalor'), {
                     zoom: 10,
                     center: centro,
-                    mapTypeId: 'roadmap',
-                    /*styles: [
-                        { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
-                        { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-                        { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
-                        { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] }
-                    ]*/
+                    mapTypeId: 'roadmap'
                 });
 
                 // Mapa de Marcadores
-                mapaMarkers = new google.maps.Map(document.getElementById('mapaMarkers'), {
+                window.estadisticasData.mapaMarkers = new google.maps.Map(document.getElementById('mapaMarkers'), {
                     zoom: 10,
                     center: centro,
                     mapTypeId: 'roadmap'
@@ -632,31 +659,47 @@
                 console.log('Datos calor:', datosCalor.length, 'Markers:', datosMarkers.length);
 
                 // Actualizar Mapa de Calor
-                if (heatmap) {
-                    heatmap.setMap(null);
-                }
-
-                if (datosCalor.length > 0) {
-                    const heatmapData = datosCalor.map(punto =>
-                        new google.maps.LatLng(punto.lat, punto.lng)
-                    );
-
-                    heatmap = new google.maps.visualization.HeatmapLayer({
-                        data: heatmapData,
-                        radius: 30,
-                        opacity: 0.6
+                if (datosCalor.length > 0 && window.estadisticasData.mapaCalor) {
+                    const heatmapData = datosCalor.map(function(punto) {
+                        return new google.maps.LatLng(punto.lat, punto.lng);
                     });
-                    heatmap.setMap(mapaCalor);
 
-                    // Centrar mapa
+                    // Crear círculos con gradiente de calor en lugar de HeatmapLayer deprecado
                     const bounds = new google.maps.LatLngBounds();
-                    heatmapData.forEach(punto => bounds.extend(punto));
-                    mapaCalor.fitBounds(bounds);
+
+                    // Limpiar heatmap anterior si existe
+                    if (window.estadisticasData.heatmapCircles) {
+                        window.estadisticasData.heatmapCircles.forEach(function(circle) {
+                            circle.setMap(null);
+                        });
+                    }
+                    window.estadisticasData.heatmapCircles = [];
+
+                    // Crear círculos para simular mapa de calor
+                    heatmapData.forEach(function(punto) {
+                        const circle = new google.maps.Circle({
+                            strokeColor: '#FF0000',
+                            strokeOpacity: 0.3,
+                            strokeWeight: 1,
+                            fillColor: '#FF0000',
+                            fillOpacity: 0.35,
+                            map: window.estadisticasData.mapaCalor,
+                            center: punto,
+                            radius: 200
+                        });
+                        window.estadisticasData.heatmapCircles.push(circle);
+                        bounds.extend(punto);
+                    });
+
+                    // Centrar mapa solo si existe
+                    if (window.estadisticasData.mapaCalor) {
+                        window.estadisticasData.mapaCalor.fitBounds(bounds);
+                    }
                 }
 
                 // Actualizar Marcadores
-                markers.forEach(marker => marker.setMap(null));
-                markers = [];
+                window.estadisticasData.markers.forEach(function(marker) { marker.setMap(null); });
+                window.estadisticasData.markers = [];
 
                 // Función para obtener color por subcategoría
                 const coloresPorSubcategoria = {};
@@ -688,10 +731,10 @@
                     return coloresPorSubcategoria[subcategoriaId];
                 }
 
-                if (datosMarkers.length > 0) {
+                if (datosMarkers.length > 0 && window.estadisticasData.mapaMarkers) {
                     const bounds = new google.maps.LatLngBounds();
 
-                    datosMarkers.forEach(punto => {
+                    datosMarkers.forEach(function(punto) {
                         const color = obtenerColorSubcategoria(punto.subcategoria_id);
 
                         // Crear círculo en lugar de marker
@@ -701,9 +744,9 @@
                             strokeWeight: 2,
                             fillColor: color,
                             fillOpacity: 0.6,
-                            map: mapaMarkers,
+                            map: window.estadisticasData.mapaMarkers,
                             center: { lat: punto.lat, lng: punto.lng },
-                            radius: 100, // Radio en metros
+                            radius: 100,
                             clickable: true
                         });
 
@@ -718,16 +761,19 @@
                             `
                         });
 
-                        marker.addListener('click', (event) => {
+                        marker.addListener('click', function(event) {
                             infowindow.setPosition(event.latLng);
-                            infowindow.open(mapaMarkers);
+                            infowindow.open(window.estadisticasData.mapaMarkers);
                         });
 
-                        markers.push(marker);
+                        window.estadisticasData.markers.push(marker);
                         bounds.extend(new google.maps.LatLng(punto.lat, punto.lng));
                     });
 
-                    mapaMarkers.fitBounds(bounds);
+                    // Centrar mapa solo si existe
+                    if (window.estadisticasData.mapaMarkers) {
+                        window.estadisticasData.mapaMarkers.fitBounds(bounds);
+                    }
                 }
             }
 
@@ -737,25 +783,25 @@
                 console.log('ApexCharts disponible:', typeof ApexCharts !== 'undefined');
 
                 // Destruir gráficos existentes y limpiar contenedores
-                if (chartCategoria) {
-                    chartCategoria.destroy();
-                    chartCategoria = null;
+                if (window.estadisticasData.chartCategoria) {
+                    window.estadisticasData.chartCategoria.destroy();
+                    window.estadisticasData.chartCategoria = null;
                 }
-                if (chartBarrio) {
-                    chartBarrio.destroy();
-                    chartBarrio = null;
+                if (window.estadisticasData.chartBarrio) {
+                    window.estadisticasData.chartBarrio.destroy();
+                    window.estadisticasData.chartBarrio = null;
                 }
-                if (chartTemporal) {
-                    chartTemporal.destroy();
-                    chartTemporal = null;
+                if (window.estadisticasData.chartTemporal) {
+                    window.estadisticasData.chartTemporal.destroy();
+                    window.estadisticasData.chartTemporal = null;
                 }
-                if (chartAccion) {
-                    chartAccion.destroy();
-                    chartAccion = null;
+                if (window.estadisticasData.chartAccion) {
+                    window.estadisticasData.chartAccion.destroy();
+                    window.estadisticasData.chartAccion = null;
                 }
-                if (chartDesenlace) {
-                    chartDesenlace.destroy();
-                    chartDesenlace = null;
+                if (window.estadisticasData.chartDesenlace) {
+                    window.estadisticasData.chartDesenlace.destroy();
+                    window.estadisticasData.chartDesenlace = null;
                 }
 
                 // Gráfico por Categoría - Leer datos del DOM desde elemento Data
@@ -808,8 +854,8 @@
                 };
 
                 if (elementCategoria && typeof ApexCharts !== 'undefined' && datosCategoria.length > 0) {
-                    chartCategoria = new ApexCharts(elementCategoria, opcionesCategoria);
-                    chartCategoria.render();
+                    window.estadisticasData.chartCategoria = new ApexCharts(elementCategoria, opcionesCategoria);
+                    window.estadisticasData.chartCategoria.render();
                     console.log('Gráfico categoría renderizado');
                 }
 
@@ -859,8 +905,8 @@
                 };
 
                 if (elementBarrio && typeof ApexCharts !== 'undefined' && datosBarrio.length > 0) {
-                    chartBarrio = new ApexCharts(elementBarrio, opcionesBarrio);
-                    chartBarrio.render();
+                    window.estadisticasData.chartBarrio = new ApexCharts(elementBarrio, opcionesBarrio);
+                    window.estadisticasData.chartBarrio.render();
                     console.log('Gráfico barrio renderizado');
                 }
 
@@ -913,8 +959,8 @@
                 };
 
                 if (elementMes && typeof ApexCharts !== 'undefined' && datosMes.length > 0) {
-                    chartTemporal = new ApexCharts(elementMes, opcionesMes);
-                    chartTemporal.render();
+                    window.estadisticasData.chartTemporal = new ApexCharts(elementMes, opcionesMes);
+                    window.estadisticasData.chartTemporal.render();
                     console.log('Gráfico temporal renderizado');
                 }
 
@@ -951,8 +997,8 @@
                     };
 
                     if (elementAccion && typeof ApexCharts !== 'undefined' && datosAccion.length > 0) {
-                        chartAccion = new ApexCharts(elementAccion, opcionesAccion);
-                        chartAccion.render();
+                        window.estadisticasData.chartAccion = new ApexCharts(elementAccion, opcionesAccion);
+                        window.estadisticasData.chartAccion.render();
                         console.log('Gráfico acción renderizado');
                     }
                 }
@@ -990,8 +1036,8 @@
                     };
 
                     if (elementDesenlace && typeof ApexCharts !== 'undefined' && datosDesenlace.length > 0) {
-                        chartDesenlace = new ApexCharts(elementDesenlace, opcionesDesenlace);
-                        chartDesenlace.render();
+                        window.estadisticasData.chartDesenlace = new ApexCharts(elementDesenlace, opcionesDesenlace);
+                        window.estadisticasData.chartDesenlace.render();
                         console.log('Gráfico desenlace renderizado');
                     }
                 }
@@ -1140,14 +1186,14 @@
             }
 
             // Esperar un momento para asegurar que el DOM está listo
-            setTimeout(() => {
+            setTimeout(function() {
                 inicializar();
             }, 100);
 
             // Escuchar evento de Livewire para actualizar visualizaciones
-            Livewire.on('actualizarEstadisticas', () => {
+            Livewire.on('actualizarEstadisticas', function() {
                 console.log('Evento actualizarEstadisticas recibido, actualizando visualizaciones...');
-                setTimeout(() => {
+                setTimeout(function() {
                     actualizarMapas();
                     actualizarGraficos();
                 }, 100);

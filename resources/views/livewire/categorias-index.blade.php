@@ -35,6 +35,9 @@
                                 Descripción
                             </th>
                             <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                                Etiquetas
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                                 Subcategorías
                             </th>
                             <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
@@ -69,6 +72,20 @@
                                     <div class="text-sm text-gray-500 dark:text-gray-400">
                                         {{ $categoria->descripcion ?? '-' }}
                                     </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    @if($categoria->etiquetas && count($categoria->etiquetas) > 0)
+                                        @php
+                                            $nombresEtiquetas = collect($categoria->etiquetas)->map(function($e) {
+                                                return is_array($e) ? ($e['nombre'] ?? '') : $e;
+                                            })->implode(', ');
+                                        @endphp
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-teal-100 text-teal-800 dark:bg-teal-800 dark:text-teal-100" title="{{ $nombresEtiquetas }}">
+                                            {{ count($categoria->etiquetas) }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">0</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
@@ -129,7 +146,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="10" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                     @if($search)
                                         No se encontraron categorías que coincidan con "{{ $search }}".
                                     @else

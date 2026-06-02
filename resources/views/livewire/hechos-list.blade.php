@@ -7,6 +7,14 @@
 
     {{-- Filtros --}}
     <div class="mb-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Filtros</h3>
+            @if($search || $filterCategoria || $filterBarrio || $filterFechaDesde || $filterFechaHasta || collect($filtrosEtiquetas)->filter()->isNotEmpty())
+                <button wire:click="limpiarFiltros" class="text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                    Limpiar filtros
+                </button>
+            @endif
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buscar</label>
@@ -42,6 +50,50 @@
                     class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
             </div>
         </div>
+
+        {{-- Filtros de etiquetas dinámicas --}}
+        @if(!empty($etiquetasCategoria))
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Filtrar por etiquetas de la categoría
+            </label>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                @foreach($etiquetasCategoria as $etiqueta)
+                    @php
+                        // Compatibilidad con formato antiguo (string) y nuevo (objeto)
+                        $esObjeto = is_array($etiqueta);
+                        $nombre = $esObjeto ? ($etiqueta['nombre'] ?? '') : $etiqueta;
+                        $tipo = $esObjeto ? ($etiqueta['tipo'] ?? 'texto') : 'texto';
+                        $opciones = $esObjeto ? ($etiqueta['opciones'] ?? []) : [];
+                        $clave = Str::slug($nombre, '_');
+                    @endphp
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ $nombre }}</label>
+                        @if($tipo === 'select' && !empty($opciones))
+                            <select wire:model.live="filtrosEtiquetas.{{ $clave }}"
+                                class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm text-sm">
+                                <option value="">Todos</option>
+                                @foreach($opciones as $opcion)
+                                    <option value="{{ $opcion }}">{{ $opcion }}</option>
+                                @endforeach
+                            </select>
+                        @elseif($tipo === 'fecha')
+                            <input type="date" wire:model.live="filtrosEtiquetas.{{ $clave }}"
+                                class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm text-sm">
+                        @elseif($tipo === 'numero')
+                            <input type="number" wire:model.live.debounce.500ms="filtrosEtiquetas.{{ $clave }}"
+                                placeholder="Buscar {{ strtolower($nombre) }}..."
+                                class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm text-sm">
+                        @else
+                            <input type="text" wire:model.live.debounce.500ms="filtrosEtiquetas.{{ $clave }}"
+                                placeholder="Buscar {{ strtolower($nombre) }}..."
+                                class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm text-sm">
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
 
     {{-- Tabla --}}

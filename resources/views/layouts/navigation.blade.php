@@ -18,6 +18,12 @@
                     <x-nav-link :href="route('hechos.index')" :active="request()->routeIs('hechos.*')">
                         {{ __('Hechos') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('operativos.index')" :active="request()->routeIs('operativos.*')">
+                        {{ __('Operativos') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('grupos.index')" :active="request()->routeIs('grupos.*')">
+                        {{ __('Grupos') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('categorias.index')" :active="request()->routeIs('categorias.*')">
                         {{ __('Categorías') }}
                     </x-nav-link>
@@ -81,6 +87,12 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('hechos.index')" :active="request()->routeIs('hechos.*')">
                 {{ __('Hechos') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('operativos.index')" :active="request()->routeIs('operativos.*')">
+                {{ __('Operativos') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('grupos.index')" :active="request()->routeIs('grupos.*')">
+                {{ __('Grupos') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('categorias.index')" :active="request()->routeIs('categorias.*')">
                 {{ __('Categorías') }}

@@ -9,6 +9,9 @@ use App\Http\Controllers\HorarioController;
 use App\Http\Controllers\AccionController;
 use App\Http\Controllers\DesenlaceController;
 use App\Http\Controllers\HechoController;
+use App\Http\Controllers\OperativoController;
+use App\Http\Controllers\GrupoController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -60,6 +63,24 @@ Route::middleware('auth')->group(function () {
     Route::get('hechos', [HechoController::class, 'index'])->name('hechos.index');
     Route::get('hechos/create', [HechoController::class, 'create'])->name('hechos.create');
     Route::get('hechos/{hecho}/edit', [HechoController::class, 'edit'])->name('hechos.edit');
+
+    // Rutas solo para supervisores
+    Route::middleware('es_supervisor')->group(function () {
+        // Gestión de Operativos
+        Route::get('operativos', [OperativoController::class, 'index'])->name('operativos.index');
+        Route::get('operativos/create', [OperativoController::class, 'create'])->name('operativos.create');
+        Route::get('operativos/{operativo}/edit', [OperativoController::class, 'edit'])->name('operativos.edit');
+
+        // Gestión de Grupos
+        Route::get('grupos', [GrupoController::class, 'index'])->name('grupos.index');
+        Route::get('grupos/create', [GrupoController::class, 'create'])->name('grupos.create');
+        Route::get('grupos/{grupo}/edit', [GrupoController::class, 'edit'])->name('grupos.edit');
+
+        // Gestión de Usuarios
+        Route::get('usuarios', [UserController::class, 'index'])->name('usuarios.index');
+        Route::get('usuarios/create', [UserController::class, 'create'])->name('usuarios.create');
+        Route::get('usuarios/{user}/edit', [UserController::class, 'edit'])->name('usuarios.edit');
+    });
 });
 
 require __DIR__.'/auth.php';

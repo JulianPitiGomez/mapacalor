@@ -10,11 +10,13 @@ class Categoria extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
+        'etiquetas',
         'activo',
     ];
 
     protected $casts = [
         'activo' => 'boolean',
+        'etiquetas' => 'array',
     ];
 
     public function subcategorias(): HasMany

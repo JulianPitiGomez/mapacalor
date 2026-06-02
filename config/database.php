@@ -63,6 +63,25 @@ return [
             ]) : [],
         ],
 
+        'mysql_faltas' => [
+            'driver' => 'mysql',
+            'host' => env('DB_FALTAS_HOST', '127.0.0.1'),
+            'port' => env('DB_FALTAS_PORT', '3306'),
+            'database' => env('DB_FALTAS_DATABASE', 'munimer_faltas'),
+            'username' => env('DB_FALTAS_USERNAME', 'root'),
+            'password' => env('DB_FALTAS_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb3',
+            'collation' => 'utf8mb3_spanish_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

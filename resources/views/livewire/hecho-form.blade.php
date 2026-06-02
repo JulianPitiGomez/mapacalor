@@ -74,7 +74,85 @@
                 </div>
             </div>
         </div>
+        {{-- Etiquetas dinámicas (si la categoría las tiene) --}}
+        @if(!empty($etiquetasCategoria))
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Datos Específicos</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Estos campos son específicos para la categoría seleccionada.
+                </p>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($etiquetasCategoria as $index => $etiqueta)
+                        @php
+                            // Compatibilidad con formato antiguo (string) y nuevo (objeto)
+                            $esObjeto = is_array($etiqueta);
+                            $nombre = $esObjeto ? ($etiqueta['nombre'] ?? '') : $etiqueta;
+                            $tipo = $esObjeto ? ($etiqueta['tipo'] ?? 'texto') : 'texto';
+                            $longitud = $esObjeto ? ($etiqueta['longitud'] ?? null) : null;
+                            $opciones = $esObjeto ? ($etiqueta['opciones'] ?? []) : [];
+                            $requerido = $esObjeto ? ($etiqueta['requerido'] ?? false) : false;
+                            // Crear una clave segura para wire:model (sin espacios ni caracteres especiales)
+                            $clave = Str::slug($nombre, '_');
+                        @endphp
+                        <div class="{{ $tipo === 'textarea' ? 'md:col-span-2' : '' }}">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $nombre }}
+                                @if($requerido) <span class="text-red-500">*</span> @endif
+                            </label>
+
+                            @switch($tipo)
+                                @case('numero')
+                                    <input type="number" wire:model="valoresEtiquetas.{{ $clave }}"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm"
+                                        placeholder="Ingrese {{ strtolower($nombre) }}"
+                                        {{ $requerido ? 'required' : '' }}>
+                                    @break
+
+                                @case('fecha')
+                                    <input type="date" wire:model="valoresEtiquetas.{{ $clave }}"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm"
+                                        {{ $requerido ? 'required' : '' }}>
+                                    @break
+
+                                @case('hora')
+                                    <input type="time" wire:model="valoresEtiquetas.{{ $clave }}"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm"
+                                        {{ $requerido ? 'required' : '' }}>
+                                    @break
+
+                                @case('textarea')
+                                    <textarea wire:model="valoresEtiquetas.{{ $clave }}" rows="3"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm"
+                                        placeholder="Ingrese {{ strtolower($nombre) }}"
+                                        {{ $requerido ? 'required' : '' }}></textarea>
+                                    @break
+
+                                @case('select')
+                                    <select wire:model="valoresEtiquetas.{{ $clave }}"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm"
+                                        {{ $requerido ? 'required' : '' }}>
+                                        <option value="">Seleccione...</option>
+                                        @foreach($opciones as $opcion)
+                                            <option value="{{ $opcion }}">{{ $opcion }}</option>
+                                        @endforeach
+                                    </select>
+                                    @break
+
+                                @default
+                                    <input type="text" wire:model="valoresEtiquetas.{{ $clave }}"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm"
+                                        placeholder="Ingrese {{ strtolower($nombre) }}"
+                                        {{ $longitud ? 'maxlength=' . $longitud : '' }}
+                                        {{ $requerido ? 'required' : '' }}>
+                            @endswitch
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
         {{-- Involucrado 1 --}}
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6">
@@ -229,15 +307,16 @@
                 </div>
             </div>
         </div>
+        
+
         {{-- Observaciones --}}
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
             <div class="p-6">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Observaciones</h3>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observaciones</label>
-                    <textarea wire:model="observaciones" rows="4" class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">{{ $observaciones }}
-                    </textarea>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observaciones adicionales</label>
+                    <textarea wire:model="observaciones" rows="4" class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm" placeholder="Notas adicionales sobre el hecho..."></textarea>
                     @error('observaciones') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                 </div>
             </div>
@@ -259,126 +338,169 @@
 
     @push('scripts')
     <script>
-        let map;
-        let marker;
-        let searchBox;
-        let geocoder;
-
-        // Definir la función initMap ANTES de cargar el script de Google Maps
-        window.initMap = function() {
-            console.log('=== initMap llamado ===');
-
-            // Esperar un momento para asegurar que el DOM esté listo
-            setTimeout(function() {
-                const defaultLat = {{ $latitud ?? -34.65041121106401 }};
-                const defaultLng = {{ $longitud ?? -59.43203992015478 }};
-
-                const mapElement = document.getElementById('map');
-                console.log('Elemento mapa:', mapElement);
-                console.log('Google Maps disponible:', typeof google !== 'undefined');
-
-                if (!mapElement) {
-                    console.error('Elemento #map no encontrado en el DOM');
-                    return;
-                }
-
-                if (typeof google === 'undefined') {
-                    console.error('Google Maps API no está cargada');
-                    return;
-                }
-
-                try {
-                    // Inicializar mapa
-                    map = new google.maps.Map(mapElement, {
-                        center: { lat: parseFloat(defaultLat), lng: parseFloat(defaultLng) },
-                        zoom: 13,
-                        mapTypeControl: true,
-                        streetViewControl: true,
-                        fullscreenControl: true
-                    });
-
-                    console.log('Mapa inicializado correctamente:', map);
-                    // Inicializar geocoder para búsqueda de direcciones
-                    geocoder = new google.maps.Geocoder();
-
-                    // Si ya hay coordenadas, mostrar marcador
-                    const latitudActual = {{ $latitud ?? 'null' }};
-                    const longitudActual = {{ $longitud ?? 'null' }};
-
-                    if (latitudActual && longitudActual) {
-                        placeMarker({ lat: parseFloat(latitudActual), lng: parseFloat(longitudActual) });
-                    }
-
-                    // Configurar búsqueda de direcciones con Autocomplete (nueva API)
-                    const searchInput = document.getElementById('searchAddress');
-                    if (searchInput) {
-                        const autocomplete = new google.maps.places.Autocomplete(searchInput, {
-                            componentRestrictions: { country: 'ar' }, // Restringir a Argentina
-                            fields: ['geometry', 'formatted_address', 'name']
-                        });
-
-                        // Bias towards map's current viewport
-                        autocomplete.bindTo('bounds', map);
-
-                        // Listen for place selection
-                        autocomplete.addListener('place_changed', function() {
-                            const place = autocomplete.getPlace();
-
-                            if (!place.geometry || !place.geometry.location) {
-                                console.log("No se encontró información de ubicación para este lugar");
-                                return;
-                            }
-
-                            // Centrar mapa en el lugar encontrado
-                            map.setCenter(place.geometry.location);
-                            map.setZoom(17);
-
-                            // Colocar marcador
-                            placeMarker({
-                                lat: place.geometry.location.lat(),
-                                lng: place.geometry.location.lng()
-                            });
-
-                            console.log('Lugar seleccionado:', place.formatted_address || place.name);
-                        });
-                    }
-
-                    // Click en el mapa para colocar marcador
-                    map.addListener('click', function(event) {
-                        placeMarker({
-                            lat: event.latLng.lat(),
-                            lng: event.latLng.lng()
-                        });
-                    });
-
-                    console.log('Configuración del mapa completada');
-                } catch (error) {
-                    console.error('Error al inicializar mapa:', error);
-                }
-            }, 300); // Esperar 300ms para que el DOM esté listo
+        // Usar variables globales para evitar redeclaraciones en navegación Livewire
+        if (typeof window.hechoFormMap === 'undefined') {
+            window.hechoFormMap = {
+                map: null,
+                marker: null,
+                searchBox: null,
+                geocoder: null
+            };
         }
 
-        function placeMarker(location) {
-            if (marker) {
-                marker.setPosition(location);
+        // Función para cargar Google Maps dinámicamente
+        window.cargarGoogleMapsForm = function(callback) {
+            // Si ya está cargado con todas las librerías necesarias, llamar directamente al callback
+            if (typeof google !== 'undefined' &&
+                typeof google.maps !== 'undefined' &&
+                typeof google.maps.places !== 'undefined') {
+                console.log('Google Maps ya está cargado con todas las librerías (Form)');
+                callback();
+                return;
+            }
+
+            // Si ya hay un script cargándose, esperar a que termine
+            if (window.googleMapsLoading) {
+                console.log('Google Maps se está cargando, esperando... (Form)');
+                const interval = setInterval(() => {
+                    if (typeof google !== 'undefined' &&
+                        typeof google.maps !== 'undefined' &&
+                        typeof google.maps.places !== 'undefined') {
+                        clearInterval(interval);
+                        callback();
+                    }
+                }, 100);
+                return;
+            }
+
+            // Marcar que se está cargando
+            window.googleMapsLoading = true;
+
+            console.log('Cargando Google Maps con librería places... (Form)');
+            const script = document.createElement('script');
+            script.src = 'https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_api_key') }}&libraries=visualization,places&loading=async';
+            script.async = true;
+            script.defer = true;
+            script.onload = () => {
+                console.log('Google Maps cargado exitosamente con places (Form)');
+                window.googleMapsLoading = false;
+                callback();
+            };
+            script.onerror = () => {
+                console.error('Error al cargar Google Maps (Form)');
+                window.googleMapsLoading = false;
+            };
+            document.head.appendChild(script);
+        }
+
+        // Función para inicializar el mapa
+        window.inicializarMapaForm = function() {
+            console.log('=== Inicializando mapa del formulario ===');
+
+            const defaultLat = {{ $latitud ?? -34.65041121106401 }};
+            const defaultLng = {{ $longitud ?? -59.43203992015478 }};
+
+            const mapElement = document.getElementById('map');
+            console.log('Elemento mapa:', mapElement);
+            console.log('Google Maps disponible:', typeof google !== 'undefined');
+
+            if (!mapElement) {
+                console.error('Elemento #map no encontrado en el DOM');
+                return;
+            }
+
+            if (typeof google === 'undefined') {
+                console.error('Google Maps API no está cargada');
+                return;
+            }
+
+            try {
+                // Inicializar mapa
+                window.hechoFormMap.map = new google.maps.Map(mapElement, {
+                    center: { lat: parseFloat(defaultLat), lng: parseFloat(defaultLng) },
+                    zoom: 13,
+                    mapTypeControl: true,
+                    streetViewControl: true,
+                    fullscreenControl: true
+                });
+
+                console.log('Mapa inicializado correctamente:', window.hechoFormMap.map);
+                // Inicializar geocoder para búsqueda de direcciones
+                window.hechoFormMap.geocoder = new google.maps.Geocoder();
+
+                // Si ya hay coordenadas, mostrar marcador
+                const latitudActual = {{ $latitud ?? 'null' }};
+                const longitudActual = {{ $longitud ?? 'null' }};
+
+                if (latitudActual && longitudActual) {
+                    window.placeMarkerForm({ lat: parseFloat(latitudActual), lng: parseFloat(longitudActual) });
+                }
+
+                // Configurar búsqueda de direcciones con Autocomplete
+                const searchInput = document.getElementById('searchAddress');
+                if (searchInput) {
+                    const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+                        componentRestrictions: { country: 'ar' },
+                        fields: ['geometry', 'formatted_address', 'name']
+                    });
+
+                    autocomplete.bindTo('bounds', window.hechoFormMap.map);
+
+                    autocomplete.addListener('place_changed', function() {
+                        const place = autocomplete.getPlace();
+
+                        if (!place.geometry || !place.geometry.location) {
+                            console.log("No se encontró información de ubicación para este lugar");
+                            return;
+                        }
+
+                        window.hechoFormMap.map.setCenter(place.geometry.location);
+                        window.hechoFormMap.map.setZoom(17);
+
+                        window.placeMarkerForm({
+                            lat: place.geometry.location.lat(),
+                            lng: place.geometry.location.lng()
+                        });
+
+                        console.log('Lugar seleccionado:', place.formatted_address || place.name);
+                    });
+                }
+
+                // Click en el mapa para colocar marcador
+                window.hechoFormMap.map.addListener('click', function(event) {
+                    window.placeMarkerForm({
+                        lat: event.latLng.lat(),
+                        lng: event.latLng.lng()
+                    });
+                });
+
+                console.log('Configuración del mapa completada');
+            } catch (error) {
+                console.error('Error al inicializar mapa:', error);
+            }
+        };
+
+        window.placeMarkerForm = function(location) {
+            if (window.hechoFormMap.marker) {
+                window.hechoFormMap.marker.setPosition(location);
             } else {
-                marker = new google.maps.Marker({
+                window.hechoFormMap.marker = new google.maps.Marker({
                     position: location,
-                    map: map,
+                    map: window.hechoFormMap.map,
                     draggable: true,
                     animation: google.maps.Animation.DROP
                 });
 
-                marker.addListener('dragend', function(event) {
-                    updateCoordinates(event.latLng.lat(), event.latLng.lng());
+                window.hechoFormMap.marker.addListener('dragend', function(event) {
+                    window.updateCoordinatesForm(event.latLng.lat(), event.latLng.lng());
                 });
             }
 
-            updateCoordinates(location.lat, location.lng);
-            map.panTo(location);
-        }
+            window.updateCoordinatesForm(location.lat, location.lng);
+            window.hechoFormMap.map.panTo(location);
+        };
 
-        function updateCoordinates(lat, lng) {
+        window.updateCoordinatesForm = function(lat, lng) {
             const latFixed = lat.toFixed(8);
             const lngFixed = lng.toFixed(8);
 
@@ -386,12 +508,37 @@
             @this.set('longitud', lngFixed);
 
             // Actualizar inputs visuales
-            document.getElementById('latitud').value = latFixed;
-            document.getElementById('longitud').value = lngFixed;
-        }
-    </script>
+            const latInput = document.getElementById('latitud');
+            const lngInput = document.getElementById('longitud');
+            if (latInput) latInput.value = latFixed;
+            if (lngInput) lngInput.value = lngFixed;
+        };
 
-    {{-- Cargar script de Google Maps DESPUÉS de definir initMap --}}
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_api_key') }}&libraries=places&callback=initMap" async defer></script>
+        // Inicializar cuando Livewire navega a esta página
+        document.addEventListener('livewire:navigated', function() {
+            console.log('Livewire navigated - Formulario de Hechos');
+
+            // Solo ejecutar si estamos en la página con el mapa
+            if (!document.getElementById('map')) {
+                console.log('No estamos en la página del formulario, saliendo...');
+                return;
+            }
+
+            // Limpiar instancias anteriores si existen
+            if (window.hechoFormMap.marker) {
+                window.hechoFormMap.marker.setMap(null);
+                window.hechoFormMap.marker = null;
+            }
+            window.hechoFormMap.map = null;
+
+            // Cargar Google Maps y luego inicializar
+            setTimeout(function() {
+                window.cargarGoogleMapsForm(function() {
+                    console.log('Google Maps listo, inicializando mapa del formulario...');
+                    window.inicializarMapaForm();
+                });
+            }, 100);
+        });
+    </script>
     @endpush
 </div>
