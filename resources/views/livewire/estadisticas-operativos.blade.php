@@ -87,7 +87,7 @@
     @push('scripts')
     <script>
         (function() {
-            window.mapaCalorState = window.mapaCalorState || { map: null, heatmap: null, markers: [], infoWindow: null };
+            window.mapaCalorState = window.mapaCalorState || { map: null, heatmapCircles: [], markers: [], infoWindow: null };
 
             // Lee los puntos del div de datos
             function getPuntosData() {
@@ -99,7 +99,8 @@
                 catch (e) { console.error('[HeatMap] JSON.parse error:', e, raw.substring(0, 80)); return []; }
             }
 
-            // Dibuja el heatmap. Si visualization aún no está lista, reintenta.
+            // Dibuja el "mapa de calor" con círculos translúcidos (HeatmapLayer está deprecado
+            // y ya no renderiza). Mismo enfoque que /estadisticas. Solo requiere el core de Maps.
             function inicializarHeatmap() {
                 var mapElement = document.getElementById('mapaCalorCanvas');
                 if (!mapElement) return;
@@ -110,26 +111,10 @@
                     return;
                 }
 
-                // Visualization no lista todavía — pedir y reintentar
-                if (!google.maps.visualization) {
-                    if (typeof google.maps.importLibrary === 'function') {
-                        google.maps.importLibrary('visualization').then(function(lib) {
-                            // La API nueva devuelve las clases en lib; las asignamos al namespace
-                            if (!google.maps.visualization) {
-                                google.maps.visualization = lib;
-                            }
-                            inicializarHeatmap();
-                        }).catch(function(e) { console.error('[HeatMap] importLibrary failed:', e); });
-                    } else {
-                        console.error('[HeatMap] google.maps.visualization no disponible y no hay importLibrary');
-                    }
-                    return;
-                }
-
                 // Limpiar capa anterior si existe
-                if (window.mapaCalorState.heatmap) {
-                    window.mapaCalorState.heatmap.setMap(null);
-                    window.mapaCalorState.heatmap = null;
+                if (window.mapaCalorState.heatmapCircles && window.mapaCalorState.heatmapCircles.length) {
+                    window.mapaCalorState.heatmapCircles.forEach(function(c) { c.setMap(null); });
+                    window.mapaCalorState.heatmapCircles = [];
                 }
                 if (window.mapaCalorState.markers && window.mapaCalorState.markers.length) {
                     window.mapaCalorState.markers.forEach(function(m) { m.setMap(null); });
@@ -154,32 +139,24 @@
                 var bounds   = new google.maps.LatLngBounds();
                 var infoWin  = new google.maps.InfoWindow();
                 window.mapaCalorState.infoWindow = infoWin;
-
-                var heatData = puntos.map(function(p) {
-                    return {
-                        location: new google.maps.LatLng(parseFloat(p.lat), parseFloat(p.lng)),
-                        weight: Math.max(1, (p.total_actas || 0) + (p.total_registros || 0))
-                    };
-                });
-
-                window.mapaCalorState.heatmap = new google.maps.visualization.HeatmapLayer({
-                    data: heatData,
-                    map: map,
-                    radius: 40,
-                    opacity: 0.85
-                });
+                window.mapaCalorState.heatmapCircles = [];
 
                 var estadoColors = { planificado:'#3B82F6', en_curso:'#F59E0B', finalizado:'#10B981', cancelado:'#EF4444' };
 
                 window.mapaCalorState.markers = puntos.map(function(p) {
                     var pos = { lat: parseFloat(p.lat), lng: parseFloat(p.lng) };
                     bounds.extend(pos);
-                    var marker = new google.maps.Marker({
-                        position: pos, map: map,
-                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
-                                fillColor:'#fff', fillOpacity:0.01, strokeColor:'#fff', strokeOpacity:0.01, strokeWeight:1 },
-                        title: p.descripcion || ''
+
+                    // Círculo de "calor": radio y opacidad según (actas + registros)
+                    var peso  = (p.total_actas || 0) + (p.total_registros || 0);
+                    var radio = 180 + Math.min(peso, 30) * 25; // 180 m base, crece con la actividad
+                    var circle = new google.maps.Circle({
+                        strokeColor: '#FF3B30', strokeOpacity: 0.35, strokeWeight: 1,
+                        fillColor: '#FF3B30', fillOpacity: 0.35,
+                        map: map, center: pos, radius: radio, clickable: true
                     });
+                    window.mapaCalorState.heatmapCircles.push(circle);
+
                     var color = estadoColors[p.estado] || '#9CA3AF';
                     var html = '<div style="padding:10px;min-width:260px;font-family:system-ui,sans-serif;">' +
                         '<div style="font-weight:700;font-size:14px;color:#1f2937;margin-bottom:6px;line-height:1.3;">' + (p.descripcion||'') + '</div>' +
@@ -190,45 +167,46 @@
                         '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
                         '<span style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;">' + (p.total_actas||0) + ' actas</span>' +
                         '<span style="background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;">' + (p.total_registros||0) + ' registros</span>' +
-                        '<span style="background:#f3f4f6;color:#374151;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">' + ((p.total_actas||0)+(p.total_registros||0)) + ' total</span>' +
+                        '<span style="background:#f3f4f6;color:#374151;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">' + peso + ' total</span>' +
                         '</div></div>';
-                    marker.addListener('click', function() { infoWin.setContent(html); infoWin.open(map, marker); });
+
+                    // Marcador invisible centrado para anclar el popup de detalle
+                    var marker = new google.maps.Marker({
+                        position: pos, map: map,
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 14,
+                                fillColor:'#fff', fillOpacity:0.01, strokeColor:'#fff', strokeOpacity:0.01, strokeWeight:1 },
+                        title: p.descripcion || ''
+                    });
+                    function abrir() { infoWin.setContent(html); infoWin.open(map, marker); }
+                    marker.addListener('click', abrir);
+                    circle.addListener('click', abrir);
                     return marker;
                 });
 
                 map.fitBounds(bounds);
             }
 
-            // Punto de entrada: carga Maps (con visualization) si no está, luego dibuja
+            // Punto de entrada: carga el core de Maps si no está, luego dibuja
             window.initMapaCalor = function() {
-                // Si Maps + visualization ya están listos, dibuja de inmediato
-                if (window.google && google.maps && typeof google.maps.Map === 'function' && google.maps.visualization) {
+                // Maps ya listo → dibuja de inmediato
+                if (window.google && google.maps && typeof google.maps.Map === 'function') {
                     inicializarHeatmap();
                     return;
                 }
 
-                // Maps core ya cargado pero visualization falta → importLibrary
-                if (window.google && google.maps && typeof google.maps.Map === 'function' && typeof google.maps.importLibrary === 'function') {
-                    google.maps.importLibrary('visualization').then(function(lib) {
-                        if (!google.maps.visualization) google.maps.visualization = lib;
-                        inicializarHeatmap();
-                    }).catch(function(e) { console.error('[HeatMap] importLibrary error:', e); });
-                    return;
-                }
-
                 // Maps no cargado aún — agregar script solo si no existe ya
-                if (!document.querySelector('script[src*="maps.googleapis.com"][src*="visualization"]')) {
+                if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
                     window.onGoogleMapsLoadedCalor = function() { inicializarHeatmap(); };
                     var s = document.createElement('script');
-                    s.src = 'https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_api_key') }}&libraries=visualization,places&callback=onGoogleMapsLoadedCalor';
+                    s.src = 'https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_api_key') }}&libraries=places&callback=onGoogleMapsLoadedCalor';
                     s.async = true; s.defer = true;
                     document.head.appendChild(s);
                 } else {
-                    // Script Maps existe pero sin visualization — esperar y usar importLibrary
+                    // Script Maps existe pero todavía cargando — esperar al core
                     var t = setInterval(function() {
                         if (window.google && google.maps && typeof google.maps.Map === 'function') {
                             clearInterval(t);
-                            window.initMapaCalor();
+                            inicializarHeatmap();
                         }
                     }, 150);
                 }
@@ -248,7 +226,7 @@
             }
 
             document.addEventListener('livewire:navigated', function() {
-                window.mapaCalorState = { map: null, heatmap: null, markers: [], infoWindow: null };
+                window.mapaCalorState = { map: null, heatmapCircles: [], markers: [], infoWindow: null };
                 window._mapaCalorHookRegistered = false;
             });
         })();
