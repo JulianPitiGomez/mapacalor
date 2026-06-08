@@ -7,7 +7,21 @@
 
     {{-- Filtros --}}
     <div class="mb-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+        {{-- Encabezado del panel + botón mapa --}}
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Filtros</h3>
+            <button wire:click="toggleMap" type="button"
+                class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                </svg>
+                {{ $showMap ? 'Ocultar Mapa' : 'Ver en Mapa' }}
+            </button>
+        </div>
+
+        {{-- Campos de filtro --}}
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buscar</label>
                 <input type="text" wire:model.live="search" placeholder="Descripcion o lugar..."
@@ -38,6 +52,18 @@
             </div>
 
             <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Período</label>
+                <select wire:model.live="filterQuick"
+                    class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                    <option value="">— Personalizado —</option>
+                    <option value="hoy">Hoy</option>
+                    <option value="semana">Esta semana</option>
+                    <option value="mes">Este mes</option>
+                    <option value="todos">Sin filtro de fecha</option>
+                </select>
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Desde</label>
                 <input type="date" wire:model.live="filterFechaDesde"
                     class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
@@ -48,16 +74,6 @@
                 <input type="date" wire:model.live="filterFechaHasta"
                     class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
             </div>
-        </div>
-
-        <div class="mt-4 flex justify-end">
-            <button wire:click="toggleMap" type="button"
-                class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                </svg>
-                {{ $showMap ? 'Ocultar Mapa' : 'Ver en Mapa' }}
-            </button>
         </div>
     </div>
 
@@ -257,24 +273,156 @@
     </script>
     @endpush
 
+    {{-- Acciones sobre la tabla --}}
+    <div class="flex justify-end gap-2 mb-2">
+        {{-- Exportar Excel --}}
+        <a href="{{ route('operativos.exportar', array_filter([
+                'search'              => $search,
+                'filterDepartamento'  => $filterDepartamento,
+                'filterEstado'        => $filterEstado,
+                'filterFechaDesde'    => $filterFechaDesde,
+                'filterFechaHasta'    => $filterFechaHasta,
+            ])) }}"
+           title="Exportar a Excel"
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Exportar Excel
+        </a>
+
+        {{-- Generar Reporte (iframe oculto para no abrir pestaña) --}}
+        <button type="button"
+                onclick="imprimirReporteOperativos('{{ route('operativos.reporte', array_filter([
+                    'search'             => $search,
+                    'filterDepartamento' => $filterDepartamento,
+                    'filterEstado'       => $filterEstado,
+                    'filterFechaDesde'   => $filterFechaDesde,
+                    'filterFechaHasta'   => $filterFechaHasta,
+                ])) }}')"
+                title="Generar reporte para imprimir"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-400 bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+            Generar Reporte
+        </button>
+    </div>
+
+    @push('scripts')
+    <script>
+        function imprimirReporteOperativos(url) {
+            var iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;border:none;opacity:0;pointer-events:none;';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+            iframe.onload = function () {
+                try {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                } catch (e) {
+                    window.open(url, '_blank');
+                }
+                setTimeout(function () {
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                }, 3000);
+            };
+        }
+    </script>
+    @endpush
+
     {{-- Listado de Operativos --}}
-    <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg" style="overflow: visible;">
-        <div class="p-4" style="overflow: visible;">
-            {{-- Encabezado --}}
-            <div class="hidden md:grid md:grid-cols-12 gap-2 px-4 py-2 bg-primary dark:bg-primary-700 rounded-t-lg text-xs font-medium text-white uppercase tracking-wider">
-                <div class="col-span-1">ID</div>
-                <div class="col-span-2">Fecha / Horario</div>
-                <div class="col-span-3">Descripcion / Lugar</div>
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            {{-- Encabezado con columnas ordenables --}}
+            <div class="hidden md:grid md:grid-cols-12 gap-2 px-4 py-3 bg-primary dark:bg-primary-700 text-sm font-semibold text-white uppercase tracking-wider">
+
+                {{-- ID --}}
+                <div class="col-span-1">
+                    <button wire:click="sortBy('id')" type="button"
+                        class="flex items-center gap-1 text-white hover:text-gray-200 uppercase font-semibold text-sm tracking-wider w-full">
+                        ID
+                        @if($sortField === 'id')
+                            @if($sortDirection === 'asc')
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                            @else
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            @endif
+                        @else
+                            <svg class="w-3 h-3 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        @endif
+                    </button>
+                </div>
+
+                {{-- Fecha / Horario --}}
+                <div class="col-span-2">
+                    <button wire:click="sortBy('fecha')" type="button"
+                        class="flex items-center gap-1 text-white hover:text-gray-200 uppercase font-semibold text-sm tracking-wider w-full">
+                        Fecha / Horario
+                        @if($sortField === 'fecha')
+                            @if($sortDirection === 'asc')
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                            @else
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            @endif
+                        @else
+                            <svg class="w-3 h-3 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        @endif
+                    </button>
+                </div>
+
+                {{-- Descripcion / Lugar --}}
+                <div class="col-span-3">
+                    <button wire:click="sortBy('descripcion')" type="button"
+                        class="flex items-center gap-1 text-white hover:text-gray-200 uppercase font-semibold text-sm tracking-wider w-full">
+                        Descripcion / Lugar
+                        @if($sortField === 'descripcion')
+                            @if($sortDirection === 'asc')
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                            @else
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            @endif
+                        @else
+                            <svg class="w-3 h-3 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        @endif
+                    </button>
+                </div>
+
+                {{-- Departamento (no ordenable, relación externa) --}}
                 <div class="col-span-2">Departamento</div>
+
+                {{-- Referente (no ordenable, relación externa) --}}
                 <div class="col-span-2">Referente</div>
-                <div class="col-span-1">Estado</div>
+
+                {{-- Estado --}}
+                <div class="col-span-1">
+                    <button wire:click="sortBy('estado')" type="button"
+                        class="flex items-center gap-1 text-white hover:text-gray-200 uppercase font-semibold text-sm tracking-wider w-full">
+                        Estado
+                        @if($sortField === 'estado')
+                            @if($sortDirection === 'asc')
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                            @else
+                                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            @endif
+                        @else
+                            <svg class="w-3 h-3 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        @endif
+                    </button>
+                </div>
+
                 <div class="col-span-1 text-right">Acciones</div>
             </div>
 
             {{-- Filas --}}
-            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
                 @forelse ($operativos as $operativo)
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 items-center">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 items-center transition-colors
+                        {{ $loop->even ? 'bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800' }}
+                        hover:bg-indigo-50 dark:hover:bg-gray-700">
                         {{-- ID --}}
                         <div class="col-span-1">
                             <span class="md:hidden text-xs font-medium text-gray-500">ID: </span>
@@ -386,9 +534,10 @@
                 @endforelse
             </div>
 
-            <div class="mt-4">
+            <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
                 {{ $operativos->links() }}
             </div>
-        </div>
     </div>
+
+
 </div>

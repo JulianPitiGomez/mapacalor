@@ -28,10 +28,9 @@
     </div>
 
     {{-- Listado de Grupos --}}
-    <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg">
-        <div class="p-4">
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             {{-- Encabezado --}}
-            <div class="hidden md:grid md:grid-cols-12 gap-2 px-4 py-2 bg-primary dark:bg-primary-700 rounded-t-lg text-xs font-medium text-white uppercase tracking-wider">
+            <div class="hidden md:grid md:grid-cols-12 gap-2 px-4 py-3 bg-primary dark:bg-primary-700 text-sm font-semibold text-white uppercase tracking-wider">
                 <div class="col-span-1">ID</div>
                 <div class="col-span-3">Nombre</div>
                 <div class="col-span-3">Departamento</div>
@@ -41,9 +40,11 @@
             </div>
 
             {{-- Filas --}}
-            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
                 @forelse ($grupos as $grupo)
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 items-center">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 items-center transition-colors
+                        {{ $loop->even ? 'bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800' }}
+                        hover:bg-indigo-50 dark:hover:bg-gray-700">
                         {{-- ID --}}
                         <div class="col-span-1">
                             <span class="md:hidden text-xs font-medium text-gray-500">ID: </span>
@@ -104,9 +105,8 @@
                 @endforelse
             </div>
 
-            <div class="mt-4">
+            <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
                 {{ $grupos->links() }}
             </div>
-        </div>
     </div>
 </div>

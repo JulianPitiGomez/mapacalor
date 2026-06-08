@@ -1,0 +1,199 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Models\Operativo;
+use App\Models\Departamento;
+use Livewire\Component;
+use Illuminate\Support\Facades\DB;
+
+class EstadisticasOperativos extends Component
+{
+    public string $filterFechaDesde = '';
+    public string $filterFechaHasta = '';
+    public string $filterQuick = '';
+    public bool $showMapa = false;
+
+    public function mount(): void
+    {
+        $this->filterFechaDesde = now()->startOfMonth()->format('Y-m-d');
+        $this->filterFechaHasta = now()->format('Y-m-d');
+    }
+
+    public function updatingFilterFechaDesde(): void
+    {
+        $this->filterQuick = '';
+    }
+
+    public function updatingFilterFechaHasta(): void
+    {
+        $this->filterQuick = '';
+    }
+
+    public function updatingFilterQuick(string $value): void
+    {
+        switch ($value) {
+            case 'hoy':
+                $this->filterFechaDesde = now()->format('Y-m-d');
+                $this->filterFechaHasta = now()->format('Y-m-d');
+                break;
+            case 'semana':
+                $this->filterFechaDesde = now()->startOfWeek()->format('Y-m-d');
+                $this->filterFechaHasta = now()->format('Y-m-d');
+                break;
+            case 'mes':
+                $this->filterFechaDesde = now()->startOfMonth()->format('Y-m-d');
+                $this->filterFechaHasta = now()->format('Y-m-d');
+                break;
+            case 'todos':
+                $this->filterFechaDesde = '';
+                $this->filterFechaHasta = '';
+                break;
+        }
+    }
+
+    public function toggleMapa(): void
+    {
+        $this->showMapa = !$this->showMapa;
+    }
+
+    public function render()
+    {
+        $departamentos = Departamento::where('marca', 1)->orderBy('nombre')->get();
+
+        // Operativos filtrados por fecha
+        $operativosQuery = Operativo::query();
+        if ($this->filterFechaDesde) {
+            $operativosQuery->whereDate('fecha', '>=', $this->filterFechaDesde);
+        }
+        if ($this->filterFechaHasta) {
+            $operativosQuery->whereDate('fecha', '<=', $this->filterFechaHasta);
+        }
+
+        $todosLosIds = $operativosQuery->pluck('id');
+        $totalOperativos = $todosLosIds->count();
+
+        $statsActas = (object)[
+            'total_actas'       => 0,
+            'total_secuestros'  => 0,
+            'total_decomisos'   => 0,
+            'total_clausuras'   => 0,
+            'total_retiene_lic' => 0,
+        ];
+        $totalRegistros    = 0;
+        $actasPorOperativo = collect();
+        $actasDetalle      = collect();
+
+        if ($todosLosIds->isNotEmpty()) {
+            $raw = DB::connection('mysql')
+                ->table('munimer_faltas.fa_acta')
+                ->whereIn('operativo_id', $todosLosIds)
+                ->selectRaw('COUNT(*) as total_actas, SUM(secuestro) as total_secuestros, SUM(decomiso) as total_decomisos, SUM(clausura) as total_clausuras, SUM(retiene_lic) as total_retiene_lic')
+                ->first();
+            if ($raw) $statsActas = $raw;
+
+            $totalRegistros = DB::connection('mysql')
+                ->table('munimer_faltas.fa_registro_control')
+                ->whereIn('operativo_id', $todosLosIds)
+                ->count();
+
+            $actasPorOperativo = DB::connection('mysql')
+                ->table('munimer_faltas.fa_acta as a')
+                ->join('munimer_mapacalor.operativos as o', 'o.id', '=', 'a.operativo_id')
+                ->whereIn('a.operativo_id', $todosLosIds)
+                ->selectRaw('a.operativo_id, o.descripcion, o.fecha, o.lugar, o.departamento_id, COUNT(a.id) as total_actas, SUM(a.secuestro) as secuestros, SUM(a.decomiso) as decomisos, SUM(a.clausura) as clausuras, SUM(a.retiene_lic) as retiene_lic')
+                ->groupBy('a.operativo_id', 'o.descripcion', 'o.fecha', 'o.lugar', 'o.departamento_id')
+                ->orderByDesc('total_actas')
+                ->get()
+                ->map(function ($row) use ($departamentos) {
+                    $row->departamento_nombre = $departamentos->firstWhere('id', $row->departamento_id)?->nombre ?? '-';
+                    return $row;
+                });
+
+            $actasDetalle = DB::connection('mysql')
+                ->table('munimer_faltas.fa_acta as a')
+                ->leftJoin('munimer_faltas.fa_inspector as i', 'i.id', '=', 'a.inspector_id')
+                ->leftJoin('munimer_faltas.fa_tiporodado as t', 't.id', '=', 'a.tipo_id')
+                ->leftJoin('munimer_faltas.fa_marca as m', 'm.id', '=', 'a.marca_id')
+                ->whereIn('a.operativo_id', $todosLosIds)
+                ->select(
+                    'a.id', 'a.actanro', 'a.operativo_id', 'a.fecha', 'a.hora',
+                    'a.nombreinf', 'a.dni', 'a.direcinf',
+                    'a.dominio', 'a.licencia', 'a.modelo',
+                    'a.secuestro', 'a.decomiso', 'a.clausura', 'a.retiene_lic',
+                    'a.obs', 'a.grad_alcohol',
+                    DB::raw('i.nombre as inspector_nombre'),
+                    DB::raw('t.nombre as tipo_rodado'),
+                    DB::raw('m.nombre as marca_vehiculo')
+                )
+                ->orderBy('a.fecha')
+                ->orderBy('a.hora')
+                ->get()
+                ->groupBy('operativo_id');
+        }
+
+        // Operativos geolocalizados — igual que el mapa de operativos: Eloquent + queries separadas
+        $opGeoQuery = Operativo::whereNotNull('latitud')->whereNotNull('longitud');
+        if ($this->filterFechaDesde) {
+            $opGeoQuery->whereDate('fecha', '>=', $this->filterFechaDesde);
+        }
+        if ($this->filterFechaHasta) {
+            $opGeoQuery->whereDate('fecha', '<=', $this->filterFechaHasta);
+        }
+        $operativosGeo = $opGeoQuery->get(['id', 'latitud', 'longitud', 'descripcion', 'lugar', 'fecha', 'estado', 'departamento_id']);
+
+        if ($operativosGeo->isNotEmpty()) {
+            $geoIds = $operativosGeo->pluck('id');
+
+            $actasCounts = DB::connection('mysql')
+                ->table('munimer_faltas.fa_acta')
+                ->whereIn('operativo_id', $geoIds)
+                ->selectRaw('operativo_id, COUNT(*) as cnt')
+                ->groupBy('operativo_id')
+                ->get()->keyBy('operativo_id');
+
+            $registrosCounts = DB::connection('mysql')
+                ->table('munimer_faltas.fa_registro_control')
+                ->whereIn('operativo_id', $geoIds)
+                ->selectRaw('operativo_id, COUNT(*) as cnt')
+                ->groupBy('operativo_id')
+                ->get()->keyBy('operativo_id');
+
+            $geoDeptIds     = $operativosGeo->pluck('departamento_id')->unique()->filter();
+            $departamentosGeo = $geoDeptIds->isNotEmpty()
+                ? Departamento::whereIn('id', $geoDeptIds)->get()->keyBy('id')
+                : collect();
+
+            $mapaPuntos = $operativosGeo->map(function ($op) use ($actasCounts, $registrosCounts, $departamentosGeo) {
+                return [
+                    'lat'             => (float) $op->latitud,
+                    'lng'             => (float) $op->longitud,
+                    'id'              => $op->id,
+                    'descripcion'     => $op->descripcion,
+                    'lugar'           => $op->lugar,
+                    'fecha'           => $op->fecha->format('d/m/Y'),
+                    'estado'          => $op->estado,
+                    'departamento'    => $departamentosGeo->get($op->departamento_id)?->nombre ?? '-',
+                    'total_actas'     => (int) ($actasCounts->get($op->id)?->cnt ?? 0),
+                    'total_registros' => (int) ($registrosCounts->get($op->id)?->cnt ?? 0),
+                ];
+            })->values();
+        } else {
+            $mapaPuntos = collect();
+        }
+
+        $totalActasMapa     = $mapaPuntos->sum('total_actas');
+        $totalRegistrosMapa = $mapaPuntos->sum('total_registros');
+
+        return view('livewire.estadisticas-operativos', [
+            'totalOperativos'    => $totalOperativos,
+            'statsActas'         => $statsActas,
+            'totalRegistros'     => $totalRegistros,
+            'actasPorOperativo'  => $actasPorOperativo,
+            'actasDetalle'       => $actasDetalle,
+            'totalActasMapa'     => $totalActasMapa,
+            'totalRegistrosMapa' => $totalRegistrosMapa,
+            'mapaPuntos'         => $mapaPuntos,
+        ]);
+    }
+}

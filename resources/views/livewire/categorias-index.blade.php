@@ -5,64 +5,64 @@
         </div>
     @endif
 
-    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="p-6 text-gray-900 dark:text-gray-100">
-            {{-- Buscador --}}
-            <div class="mb-4">
-                <div class="flex gap-2">
-                    <div class="flex-1">
-                        <input type="text"
-                               wire:model.live.debounce.300ms="search"
-                               placeholder="Buscar por nombre..."
-                               class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-primary-500 dark:focus:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 shadow-sm">
-                    </div>
-                    @if($search)
-                        <button type="button" wire:click="$set('search', '')" class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            Limpiar
-                        </button>
-                    @endif
-                </div>
+    {{-- Buscador --}}
+    <div class="mb-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <div class="flex gap-2">
+            <div class="flex-1">
+                <input type="text"
+                       wire:model.live.debounce.300ms="search"
+                       placeholder="Buscar por nombre..."
+                       class="w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-primary-500 dark:focus:border-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 shadow-sm">
             </div>
+            @if($search)
+                <button type="button" wire:click="$set('search', '')" class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    Limpiar
+                </button>
+            @endif
+        </div>
+    </div>
 
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 relative">
+                <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-700 relative">
                     <thead class="bg-primary dark:bg-primary-700">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                 Nombre
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                 Descripción
                             </th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
                                 Etiquetas
                             </th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
                                 Subcategorías
                             </th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
                                 Involucrados
                             </th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
                                 Horarios
                             </th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
                                 Acciones
                             </th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-semibold text-white uppercase tracking-wider">
                                 Desenlaces
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                 Estado
                             </th>
-                            <th scope="col" class="sticky right-0 px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider bg-primary dark:bg-primary-700">
+                            <th scope="col" class="sticky right-0 px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider bg-primary dark:bg-primary-700">
                                 Acciones
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         @forelse ($categorias as $categoria)
-                            <tr>
+                            @php $rowBg = $loop->even ? 'bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800'; @endphp
+                            <tr class="group {{ $rowBg }} hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {{ $categoria->nombre }}
@@ -123,7 +123,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="sticky right-0 px-6 py-4 whitespace-nowrap text-right text-sm font-medium bg-white dark:bg-gray-800">
+                                <td class="sticky right-0 px-6 py-3 whitespace-nowrap text-right text-sm font-medium {{ $rowBg }} group-hover:bg-indigo-50 dark:group-hover:bg-gray-700 transition-colors">
                                     <a href="{{ route('categorias.edit', $categoria) }}" wire:navigate
                                        class="inline-flex items-center justify-center w-8 h-8 text-secondary hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-lg transition-colors mr-2"
                                        title="Editar">
@@ -146,7 +146,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="10" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">
                                     @if($search)
                                         No se encontraron categorías que coincidan con "{{ $search }}".
                                     @else
@@ -158,10 +158,8 @@
                     </tbody>
                 </table>
             </div>
-
-            <div class="mt-4">
+            <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
                 {{ $categorias->links() }}
             </div>
-        </div>
     </div>
 </div>

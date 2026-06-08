@@ -10,7 +10,7 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-2">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             @if (session('success'))
                 <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-800 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-200 rounded">
@@ -18,29 +18,28 @@
                 </div>
             @endif
 
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
                             <thead class="bg-primary dark:bg-primary-700">
                                 <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                         Nombre
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                         Descripción
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-white uppercase tracking-wider">
                                         Estado
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-right text-sm font-semibold text-white uppercase tracking-wider">
                                         Acciones
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 @forelse ($barrios as $barrio)
-                                    <tr>
+                                    <tr class="{{ $loop->even ? 'bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800' }} hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                 {{ $barrio->nombre }}
@@ -85,7 +84,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                        <td colspan="4" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">
                                             No hay barrios registrados.
                                         </td>
                                     </tr>
@@ -93,11 +92,9 @@
                             </tbody>
                         </table>
                     </div>
-
-                    <div class="mt-4">
+                    <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
                         {{ $barrios->links() }}
                     </div>
-                </div>
             </div>
         </div>
     </div>

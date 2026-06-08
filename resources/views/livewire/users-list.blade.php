@@ -23,10 +23,9 @@
     </div>
 
     {{-- Listado de Usuarios --}}
-    <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg">
-        <div class="p-4">
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             {{-- Encabezado --}}
-            <div class="hidden md:grid md:grid-cols-12 gap-2 px-4 py-2 bg-primary dark:bg-primary-700 rounded-t-lg text-xs font-medium text-white uppercase tracking-wider">
+            <div class="hidden md:grid md:grid-cols-12 gap-2 px-4 py-3 bg-primary dark:bg-primary-700 text-sm font-semibold text-white uppercase tracking-wider">
                 <div class="col-span-4">Nombre</div>
                 <div class="col-span-4">Email</div>
                 <div class="col-span-2">Supervisor</div>
@@ -34,9 +33,11 @@
             </div>
 
             {{-- Filas --}}
-            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
                 @forelse ($users as $user)
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 items-center">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 px-4 py-3 items-center transition-colors
+                        {{ $loop->even ? 'bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800' }}
+                        hover:bg-indigo-50 dark:hover:bg-gray-700">
                         {{-- Nombre --}}
                         <div class="col-span-4">
                             <span class="md:hidden text-xs font-medium text-gray-500">Nombre: </span>
@@ -91,9 +92,8 @@
                 @endforelse
             </div>
 
-            <div class="mt-4">
+            <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
                 {{ $users->links() }}
             </div>
-        </div>
     </div>
 </div>

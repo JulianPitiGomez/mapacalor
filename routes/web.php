@@ -66,8 +66,15 @@ Route::middleware('auth')->group(function () {
 
     // Rutas solo para supervisores
     Route::middleware('es_supervisor')->group(function () {
+        // Estadísticas de Operativos
+        Route::get('estadisticas-operativos', function () {
+            return view('estadisticas-operativos.index');
+        })->name('estadisticas-operativos.index');
+
         // Gestión de Operativos
         Route::get('operativos', [OperativoController::class, 'index'])->name('operativos.index');
+        Route::get('operativos/reporte', [OperativoController::class, 'reporte'])->name('operativos.reporte');
+        Route::get('operativos/exportar', [OperativoController::class, 'exportar'])->name('operativos.exportar');
         Route::get('operativos/create', [OperativoController::class, 'create'])->name('operativos.create');
         Route::get('operativos/{operativo}/edit', [OperativoController::class, 'edit'])->name('operativos.edit');
 
