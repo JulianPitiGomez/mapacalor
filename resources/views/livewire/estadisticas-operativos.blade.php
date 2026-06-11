@@ -474,6 +474,11 @@
                                         @if($acta->dni)
                                             <div class="text-gray-400">DNI {{ number_format($acta->dni, 0, ',', '.') }}</div>
                                         @endif
+                                        @if($acta->motivos)
+                                            <div class="text-indigo-500 dark:text-indigo-400 truncate mt-0.5" title="{{ $acta->motivos }}">
+                                                {{ $acta->motivos }}
+                                            </div>
+                                        @endif
                                     </div>
 
                                     <div class="col-span-2">
@@ -511,6 +516,17 @@
                                      class="px-6 py-4 bg-blue-50 dark:bg-blue-900/10 border-t border-blue-100 dark:border-blue-900/30">
 
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+
+                                        @if($acta->motivos)
+                                        <div class="md:col-span-3 bg-white dark:bg-gray-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-900/40">
+                                            <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Motivos de Infracción</div>
+                                            <div class="flex flex-wrap gap-1.5">
+                                                @foreach(explode(' | ', $acta->motivos) as $motivo)
+                                                    <span class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 text-xs font-medium">{{ trim($motivo) }}</span>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        @endif
 
                                         <div class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-gray-700">
                                             <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Infractor</div>

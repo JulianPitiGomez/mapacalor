@@ -115,6 +115,8 @@ class EstadisticasOperativos extends Component
                 ->leftJoin('munimer_faltas.fa_inspector as i', 'i.id', '=', 'a.inspector_id')
                 ->leftJoin('munimer_faltas.fa_tiporodado as t', 't.id', '=', 'a.tipo_id')
                 ->leftJoin('munimer_faltas.fa_marca as m', 'm.id', '=', 'a.marca_id')
+                ->leftJoin('munimer_faltas.fa_acta_motivo as am', 'am.acta_id', '=', 'a.id')
+                ->leftJoin('munimer_faltas.fa_motivo as mo', 'mo.id', '=', 'am.motivo_id')
                 ->whereIn('a.operativo_id', $todosLosIds)
                 ->select(
                     'a.id', 'a.actanro', 'a.operativo_id', 'a.fecha', 'a.hora',
@@ -124,7 +126,16 @@ class EstadisticasOperativos extends Component
                     'a.obs', 'a.grad_alcohol',
                     DB::raw('i.nombre as inspector_nombre'),
                     DB::raw('t.nombre as tipo_rodado'),
-                    DB::raw('m.nombre as marca_vehiculo')
+                    DB::raw('m.nombre as marca_vehiculo'),
+                    DB::raw('GROUP_CONCAT(DISTINCT mo.nombre ORDER BY mo.nombre SEPARATOR " | ") as motivos')
+                )
+                ->groupBy(
+                    'a.id', 'a.actanro', 'a.operativo_id', 'a.fecha', 'a.hora',
+                    'a.nombreinf', 'a.dni', 'a.direcinf',
+                    'a.dominio', 'a.licencia', 'a.modelo',
+                    'a.secuestro', 'a.decomiso', 'a.clausura', 'a.retiene_lic',
+                    'a.obs', 'a.grad_alcohol',
+                    'i.nombre', 't.nombre', 'm.nombre'
                 )
                 ->orderBy('a.fecha')
                 ->orderBy('a.hora')
