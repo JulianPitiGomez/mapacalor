@@ -216,12 +216,12 @@ class OperativoForm extends Component
                 $operativo = Operativo::findOrFail($this->operativoId);
                 $operativo->update($data);
                 \Log::info('Operativo actualizado exitosamente');
-                session()->flash('message', 'Operativo actualizado exitosamente.');
+                $this->dispatch('toast', message: 'Operativo actualizado exitosamente.', type: 'success');
             } else {
                 \Log::info('Creando nuevo operativo');
                 $operativo = Operativo::create($data);
                 \Log::info('Operativo creado con ID: ' . $operativo->id);
-                session()->flash('message', 'Operativo registrado exitosamente.');
+                $this->dispatch('toast', message: 'Operativo registrado exitosamente.', type: 'success');
             }
 
             // Sincronizar inspectores participantes (manual, evita cross-database)
@@ -245,7 +245,7 @@ class OperativoForm extends Component
         } catch (\Exception $e) {
             \Log::error('Error al guardar operativo: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
-            session()->flash('error', 'Error al guardar el operativo: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Error al guardar el operativo: ' . $e->getMessage(), type: 'error');
             return null;
         }
     }

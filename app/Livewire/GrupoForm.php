@@ -139,10 +139,10 @@ class GrupoForm extends Component
             if ($this->isEdit) {
                 $grupo = Grupo::findOrFail($this->grupoId);
                 $grupo->update($data);
-                session()->flash('message', 'Grupo actualizado exitosamente.');
+                $this->dispatch('toast', message: 'Grupo actualizado exitosamente.', type: 'success');
             } else {
                 $grupo = Grupo::create($data);
-                session()->flash('message', 'Grupo creado exitosamente.');
+                $this->dispatch('toast', message: 'Grupo creado exitosamente.', type: 'success');
             }
 
             // Sincronizar inspectores miembros
@@ -162,7 +162,7 @@ class GrupoForm extends Component
 
             return $this->redirect(route('grupos.index'), navigate: true);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al guardar el grupo: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Error al guardar el grupo: ' . $e->getMessage(), type: 'error');
             return null;
         }
     }

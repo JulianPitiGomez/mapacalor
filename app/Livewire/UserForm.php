@@ -69,10 +69,10 @@ class UserForm extends Component
         if ($this->isEdit) {
             $user = User::findOrFail($this->userId);
             $user->update($data);
-            session()->flash('message', 'Usuario actualizado exitosamente.');
+            $this->dispatch('toast', message: 'Usuario actualizado exitosamente.', type: 'success');
         } else {
             User::create($data);
-            session()->flash('message', 'Usuario creado exitosamente.');
+            $this->dispatch('toast', message: 'Usuario creado exitosamente.', type: 'success');
         }
 
         return $this->redirect(route('usuarios.index'), navigate: true);

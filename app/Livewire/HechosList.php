@@ -96,7 +96,7 @@ class HechosList extends Component
         $hecho = Hecho::findOrFail($hechoId);
         $hecho->delete();
 
-        session()->flash('message', 'Hecho eliminado exitosamente.');
+        $this->dispatch('toast', message: 'Hecho eliminado exitosamente.', type: 'success');
     }
 
     public function render()

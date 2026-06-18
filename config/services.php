@@ -39,4 +39,9 @@ return [
         'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'actas' => [
+        'fotos_path' => env('ACTAS_FOTOS_PATH'),
+        'fotos_url'  => env('ACTAS_FOTOS_URL'),
+    ],
+
 ];

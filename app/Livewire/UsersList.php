@@ -24,14 +24,14 @@ class UsersList extends Component
     public function deleteUser($userId)
     {
         if ($userId == auth()->id()) {
-            session()->flash('error', 'No puedes eliminar tu propio usuario.');
+            $this->dispatch('toast', message: 'No puedes eliminar tu propio usuario.', type: 'error');
             return;
         }
 
         $user = User::findOrFail($userId);
         $user->delete();
 
-        session()->flash('message', 'Usuario eliminado exitosamente.');
+        $this->dispatch('toast', message: 'Usuario eliminado exitosamente.', type: 'success');
     }
 
     public function render()

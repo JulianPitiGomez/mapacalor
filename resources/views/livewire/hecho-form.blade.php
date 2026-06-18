@@ -1,16 +1,4 @@
 <div wire:key="hecho-form-{{ $hechoId ?? 'new' }}">
-    @if (session()->has('message'))
-        <div class="mb-4 p-4 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">
-            {{ session('message') }}
-        </div>
-    @endif
-
-    @if (session()->has('error'))
-        <div class="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded">
-            <strong>Error:</strong> {{ session('error') }}
-        </div>
-    @endif
-
     @if ($errors->any())
         <div class="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded">
             <strong>Errores de validación:</strong>

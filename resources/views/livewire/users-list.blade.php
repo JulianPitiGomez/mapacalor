@@ -1,16 +1,4 @@
 <div>
-    @if (session()->has('message'))
-        <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-800 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-200 rounded">
-            {{ session('message') }}
-        </div>
-    @endif
-
-    @if (session()->has('error'))
-        <div class="mb-4 px-4 py-3 bg-red-100 dark:bg-red-800 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded">
-            {{ session('error') }}
-        </div>
-    @endif
-
     {{-- Filtro de búsqueda --}}
     <div class="mb-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

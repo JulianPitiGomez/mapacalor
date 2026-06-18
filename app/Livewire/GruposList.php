@@ -37,7 +37,7 @@ class GruposList extends Component
         DB::table('grupo_inspector')->where('grupo_id', $grupoId)->delete();
         $grupo->delete();
 
-        session()->flash('message', 'Grupo eliminado exitosamente.');
+        $this->dispatch('toast', message: 'Grupo eliminado exitosamente.', type: 'success');
     }
 
     public function render()

@@ -142,11 +142,13 @@ class EstadisticasOperativos extends Component
                 ->get()
                 ->map(function ($acta) {
                     $nro = str_pad($acta->actanro, 10, '0', STR_PAD_LEFT);
+                    $fotosPath = rtrim(config('services.actas.fotos_path') ?? public_path('fotos'), '/\\');
+                    $fotosUrl  = rtrim(config('services.actas.fotos_url')  ?? url('fotos'), '/');
                     $fotos = [];
                     for ($i = 1; $i <= 5; $i++) {
                         $nombre = 'fot-' . $nro . '-' . str_pad($i, 3, '0', STR_PAD_LEFT) . '.jpg';
-                        if (file_exists(public_path('fotos/' . $nombre))) {
-                            $fotos[] = asset('fotos/' . $nombre);
+                        if (file_exists($fotosPath . DIRECTORY_SEPARATOR . $nombre)) {
+                            $fotos[] = $fotosUrl . '/' . $nombre;
                         }
                     }
                     $acta->fotos = $fotos;

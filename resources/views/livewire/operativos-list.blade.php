@@ -1,10 +1,4 @@
 <div>
-    @if (session()->has('message'))
-        <div class="mb-4 px-4 py-3 bg-green-100 dark:bg-green-800 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-200 rounded">
-            {{ session('message') }}
-        </div>
-    @endif
-
     {{-- Filtros --}}
     <div class="mb-6 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
 

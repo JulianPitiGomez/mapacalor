@@ -117,7 +117,7 @@ class OperativosList extends Component
         DB::connection('mysql')->table('operativo_inspector')->where('operativo_id', $operativoId)->delete();
         $operativo->delete();
 
-        session()->flash('message', 'Operativo eliminado exitosamente.');
+        $this->dispatch('toast', message: 'Operativo eliminado exitosamente.', type: 'success');
     }
 
     public function cambiarEstado($operativoId, $nuevoEstado)
@@ -125,7 +125,7 @@ class OperativosList extends Component
         $operativo = Operativo::findOrFail($operativoId);
         $operativo->update(['estado' => $nuevoEstado]);
 
-        session()->flash('message', 'Estado del operativo actualizado.');
+        $this->dispatch('toast', message: 'Estado del operativo actualizado.', type: 'success');
     }
 
     public function render()

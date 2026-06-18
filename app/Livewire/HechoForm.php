@@ -331,13 +331,13 @@ class HechoForm extends Component
                 \Log::info('Datos a actualizar:', $data);
                 $hecho->update($data);
                 \Log::info('Hecho actualizado exitosamente');
-                session()->flash('message', 'Hecho actualizado exitosamente.');
+                $this->dispatch('toast', message: 'Hecho actualizado exitosamente.', type: 'success');
             } else {
                 \Log::info('Creando nuevo hecho');
                 \Log::info('Datos a crear:', $data);
                 $hecho = Hecho::create($data);
                 \Log::info('Hecho creado con ID: ' . $hecho->id);
-                session()->flash('message', 'Hecho registrado exitosamente.');
+                $this->dispatch('toast', message: 'Hecho registrado exitosamente.', type: 'success');
             }
 
             \Log::info('Redirigiendo a index');
@@ -345,7 +345,7 @@ class HechoForm extends Component
         } catch (\Exception $e) {
             \Log::error('Error al guardar hecho: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
-            session()->flash('error', 'Error al guardar el hecho: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Error al guardar el hecho: ' . $e->getMessage(), type: 'error');
             return null;
         }
     }
