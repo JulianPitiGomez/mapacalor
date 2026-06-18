@@ -147,7 +147,7 @@ class EstadisticasOperativos extends Component
                     $fotos = [];
                     for ($i = 1; $i <= 5; $i++) {
                         $nombre = 'fot-' . $nro . '-' . str_pad($i, 3, '0', STR_PAD_LEFT) . '.jpg';
-                        if (file_exists($fotosPath . DIRECTORY_SEPARATOR . $nombre)) {
+                        if (@file_exists($fotosPath . DIRECTORY_SEPARATOR . $nombre)) {
                             $fotos[] = $fotosUrl . '/' . $nombre;
                         }
                     }
