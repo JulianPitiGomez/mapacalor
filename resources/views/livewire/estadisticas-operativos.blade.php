@@ -452,7 +452,9 @@
 
                             <div class="divide-y divide-slate-100 dark:divide-gray-700/50">
                             @foreach($actas as $acta)
-                            <div x-data="{ detail: false }">
+                            <div x-data="{ detail: false, fotoActual: null, indiceActual: 0, fotos: [] }"
+                                 x-init="fotos = JSON.parse($el.dataset.fotos || '[]')"
+                                 data-fotos="{{ json_encode($acta->fotos) }}">
 
                                 <div @click="detail = !detail"
                                      class="grid grid-cols-12 px-6 py-2.5 cursor-pointer items-center transition-colors text-xs"
@@ -500,7 +502,15 @@
                                         {{ $acta->inspector_nombre ?? '—' }}
                                     </div>
 
-                                    <div class="col-span-1 flex justify-end pr-1">
+                                    <div class="col-span-1 flex justify-end items-center gap-1.5 pr-1">
+                                        @if(count($acta->fotos) > 0)
+                                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400 flex-shrink-0" title="{{ count($acta->fotos) }} foto(s)">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                </svg>
+                                            </span>
+                                        @endif
                                         <svg class="w-3.5 h-3.5 text-gray-400 transition-transform duration-200"
                                              :class="detail ? 'rotate-180' : ''"
                                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,8 +583,83 @@
                                             </div>
                                         </div>
 
+                                        @if(count($acta->fotos) > 0)
+                                        <div class="md:col-span-3 bg-white dark:bg-gray-800 rounded-lg p-3 border border-sky-100 dark:border-sky-900/40">
+                                            <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                </svg>
+                                                Fotos ({{ count($acta->fotos) }})
+                                            </div>
+                                            <div class="flex flex-wrap gap-2">
+                                                @foreach($acta->fotos as $idx => $fotoUrl)
+                                                <button type="button"
+                                                        @click.stop="indiceActual = {{ $idx }}; fotoActual = fotos[{{ $idx }}]"
+                                                        class="relative group overflow-hidden rounded-md w-20 h-20 flex-shrink-0 border-2 border-sky-200 dark:border-sky-700 hover:border-sky-400 dark:hover:border-sky-500 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400">
+                                                    <img src="{{ $fotoUrl }}"
+                                                         alt="Foto {{ $idx + 1 }} acta #{{ $acta->actanro }}"
+                                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                                         loading="lazy">
+                                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+                                                        <svg class="w-5 h-5 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zm-3-4v1m0 3h.01"/>
+                                                        </svg>
+                                                    </div>
+                                                </button>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        @endif
+
                                     </div>
                                 </div>
+
+                                {{-- Lightbox de fotos --}}
+                                <div x-show="fotoActual !== null"
+                                     x-cloak
+                                     class="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
+                                     @click.self="fotoActual = null"
+                                     @keydown.escape.window="fotoActual = null"
+                                     @keydown.arrow-left.window="if(fotoActual !== null && indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
+                                     @keydown.arrow-right.window="if(fotoActual !== null && indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }">
+
+                                    <button type="button" @click="fotoActual = null"
+                                            class="absolute top-4 right-4 z-10 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+
+                                    <button type="button"
+                                            x-show="fotos.length > 1"
+                                            @click="if(indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
+                                            :class="indiceActual === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                        </svg>
+                                    </button>
+
+                                    <img :src="fotoActual"
+                                         class="max-w-[90vw] max-h-[85vh] object-contain rounded shadow-2xl select-none">
+
+                                    <button type="button"
+                                            x-show="fotos.length > 1"
+                                            @click="if(indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }"
+                                            :class="indiceActual === fotos.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </button>
+
+                                    <div x-show="fotos.length > 1"
+                                         class="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-3">
+                                        <span class="text-white/70 text-sm font-mono tabular-nums" x-text="(indiceActual + 1) + ' / ' + fotos.length"></span>
+                                    </div>
+                                </div>
+
                             </div>
                             @endforeach
                             </div>

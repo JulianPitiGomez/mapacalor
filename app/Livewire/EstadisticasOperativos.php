@@ -140,6 +140,18 @@ class EstadisticasOperativos extends Component
                 ->orderBy('a.fecha')
                 ->orderBy('a.hora')
                 ->get()
+                ->map(function ($acta) {
+                    $nro = str_pad($acta->actanro, 10, '0', STR_PAD_LEFT);
+                    $fotos = [];
+                    for ($i = 1; $i <= 5; $i++) {
+                        $nombre = 'fot-' . $nro . '-' . str_pad($i, 3, '0', STR_PAD_LEFT) . '.jpg';
+                        if (file_exists(public_path('fotos/' . $nombre))) {
+                            $fotos[] = asset('fotos/' . $nombre);
+                        }
+                    }
+                    $acta->fotos = $fotos;
+                    return $acta;
+                })
                 ->groupBy('operativo_id');
         }
 
