@@ -35,6 +35,8 @@ class OperativoForm extends Component
     public $acompanamiento_policial;
     public $inspectores_participantes = []; // datos pivot con estado y observacion
 
+    public $operativosActivosDelReferente = [];
+
     // Datos para los selects
     public $departamentos = [];
     public $inspectores = [];
@@ -108,6 +110,23 @@ class OperativoForm extends Component
                 ->orderBy('nombre')
                 ->get();
         }
+
+        // Cargar operativos activos del referente (para mostrar advertencia en edición)
+        if ($this->inspector_referente_id) {
+            $this->operativosActivosDelReferente = Operativo::where('inspector_referente_id', $this->inspector_referente_id)
+                ->whereIn('estado', ['planificado', 'en_curso'])
+                ->where('id', '!=', $operativo->id)
+                ->orderBy('fecha')
+                ->get(['id', 'descripcion', 'fecha', 'lugar', 'estado'])
+                ->map(fn ($op) => [
+                    'id'          => $op->id,
+                    'descripcion' => $op->descripcion,
+                    'fecha'       => $op->fecha->format('d/m/Y'),
+                    'lugar'       => $op->lugar,
+                    'estado'      => $op->estado_label,
+                ])
+                ->toArray();
+        }
     }
 
     public function updatedDepartamentoId()
@@ -137,6 +156,8 @@ class OperativoForm extends Component
 
     public function updatedInspectorReferenteId()
     {
+        $this->operativosActivosDelReferente = [];
+
         if ($this->inspector_referente_id) {
             // Buscar si el inspector referente es encargado de algún grupo en este departamento
             $grupo = Grupo::where('inspector_encargado_id', $this->inspector_referente_id)
@@ -144,16 +165,34 @@ class OperativoForm extends Component
                 ->first();
 
             if ($grupo) {
-                // Obtener los IDs de los miembros del grupo
                 $miembrosIds = DB::table('grupo_inspector')
                     ->where('grupo_id', $grupo->id)
                     ->pluck('inspector_id')
                     ->map(fn ($id) => (string) $id)
                     ->toArray();
 
-                // Auto-tildar los miembros del grupo
                 $this->inspectores_ids = $miembrosIds;
             }
+
+            // Verificar si este inspector ya es referente de otros operativos activos
+            $query = Operativo::where('inspector_referente_id', $this->inspector_referente_id)
+                ->whereIn('estado', ['planificado', 'en_curso']);
+
+            if ($this->operativoId) {
+                $query->where('id', '!=', $this->operativoId);
+            }
+
+            $this->operativosActivosDelReferente = $query
+                ->orderBy('fecha')
+                ->get(['id', 'descripcion', 'fecha', 'lugar', 'estado'])
+                ->map(fn ($op) => [
+                    'id'          => $op->id,
+                    'descripcion' => $op->descripcion,
+                    'fecha'       => $op->fecha->format('d/m/Y'),
+                    'lugar'       => $op->lugar,
+                    'estado'      => $op->estado_label,
+                ])
+                ->toArray();
         }
     }
 

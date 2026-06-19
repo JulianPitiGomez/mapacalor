@@ -106,6 +106,24 @@
                             @endforeach
                         </select>
                         @error('inspector_referente_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+
+                        @if(count($operativosActivosDelReferente) > 0)
+                        <div class="mt-2 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-md">
+                            <p class="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                                Este inspector ya es referente de {{ count($operativosActivosDelReferente) === 1 ? 'otro operativo activo' : count($operativosActivosDelReferente) . ' operativos activos' }}:
+                            </p>
+                            <ul class="text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
+                                @foreach($operativosActivosDelReferente as $op)
+                                <li>
+                                    <span class="font-medium">#{{ $op['id'] }}</span>
+                                    &mdash; {{ $op['fecha'] }} &mdash; {{ $op['lugar'] }}
+                                    <span class="opacity-75">({{ $op['estado'] }})</span>
+                                </li>
+                                @endforeach
+                            </ul>
+                            <p class="text-xs text-amber-600 dark:text-amber-500 mt-1">Podés continuar: el sistema admite un inspector referente en varios operativos simultáneos.</p>
+                        </div>
+                        @endif
                     </div>
 
                     <div>
