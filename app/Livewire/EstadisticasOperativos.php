@@ -70,7 +70,8 @@ class EstadisticasOperativos extends Component
             $operativosQuery->whereDate('fecha', '<=', $this->filterFechaHasta);
         }
 
-        $todosLosIds = $operativosQuery->pluck('id');
+        $operativosFiltrados = $operativosQuery->get(['id', 'descripcion', 'fecha', 'lugar', 'departamento_id']);
+        $todosLosIds = $operativosFiltrados->pluck('id');
         $totalOperativos = $todosLosIds->count();
 
         $statsActas = (object)[
@@ -85,38 +86,42 @@ class EstadisticasOperativos extends Component
         $actasDetalle      = collect();
 
         if ($todosLosIds->isNotEmpty()) {
-            $raw = DB::connection('mysql')
-                ->table('munimer_faltas.fa_acta')
+            $raw = DB::connection('mysql_faltas')
+                ->table('fa_acta')
                 ->whereIn('operativo_id', $todosLosIds)
                 ->selectRaw('COUNT(*) as total_actas, SUM(secuestro) as total_secuestros, SUM(decomiso) as total_decomisos, SUM(clausura) as total_clausuras, SUM(retiene_lic) as total_retiene_lic')
                 ->first();
             if ($raw) $statsActas = $raw;
 
-            $totalRegistros = DB::connection('mysql')
-                ->table('munimer_faltas.fa_registro_control')
+            $totalRegistros = DB::connection('mysql_faltas')
+                ->table('fa_registro_control')
                 ->whereIn('operativo_id', $todosLosIds)
                 ->count();
 
-            $actasPorOperativo = DB::connection('mysql')
-                ->table('munimer_faltas.fa_acta as a')
-                ->join('munimer_mapacalor.operativos as o', 'o.id', '=', 'a.operativo_id')
-                ->whereIn('a.operativo_id', $todosLosIds)
-                ->selectRaw('a.operativo_id, o.descripcion, o.fecha, o.lugar, o.departamento_id, COUNT(a.id) as total_actas, SUM(a.secuestro) as secuestros, SUM(a.decomiso) as decomisos, SUM(a.clausura) as clausuras, SUM(a.retiene_lic) as retiene_lic')
-                ->groupBy('a.operativo_id', 'o.descripcion', 'o.fecha', 'o.lugar', 'o.departamento_id')
+            // JOIN cross-database separado en PHP: mysql_faltas no puede joinear con mysql
+            $actasPorOperativo = DB::connection('mysql_faltas')
+                ->table('fa_acta')
+                ->whereIn('operativo_id', $todosLosIds)
+                ->selectRaw('operativo_id, COUNT(id) as total_actas, SUM(secuestro) as secuestros, SUM(decomiso) as decomisos, SUM(clausura) as clausuras, SUM(retiene_lic) as retiene_lic')
+                ->groupBy('operativo_id')
                 ->orderByDesc('total_actas')
                 ->get()
-                ->map(function ($row) use ($departamentos) {
-                    $row->departamento_nombre = $departamentos->firstWhere('id', $row->departamento_id)?->nombre ?? '-';
+                ->map(function ($row) use ($operativosFiltrados, $departamentos) {
+                    $op = $operativosFiltrados->firstWhere('id', $row->operativo_id);
+                    $row->descripcion        = $op?->descripcion ?? '-';
+                    $row->fecha              = $op?->fecha;
+                    $row->lugar              = $op?->lugar ?? '-';
+                    $row->departamento_nombre = $departamentos->firstWhere('id', $op?->departamento_id)?->nombre ?? '-';
                     return $row;
                 });
 
-            $actasDetalle = DB::connection('mysql')
-                ->table('munimer_faltas.fa_acta as a')
-                ->leftJoin('munimer_faltas.fa_inspector as i', 'i.id', '=', 'a.inspector_id')
-                ->leftJoin('munimer_faltas.fa_tiporodado as t', 't.id', '=', 'a.tipo_id')
-                ->leftJoin('munimer_faltas.fa_marca as m', 'm.id', '=', 'a.marca_id')
-                ->leftJoin('munimer_faltas.fa_acta_motivo as am', 'am.acta_id', '=', 'a.id')
-                ->leftJoin('munimer_faltas.fa_motivo as mo', 'mo.id', '=', 'am.motivo_id')
+            $actasDetalle = DB::connection('mysql_faltas')
+                ->table('fa_acta as a')
+                ->leftJoin('fa_inspector as i', 'i.id', '=', 'a.inspector_id')
+                ->leftJoin('fa_tiporodado as t', 't.id', '=', 'a.tipo_id')
+                ->leftJoin('fa_marca as m', 'm.id', '=', 'a.marca_id')
+                ->leftJoin('fa_acta_motivo as am', 'am.acta_id', '=', 'a.id')
+                ->leftJoin('fa_motivo as mo', 'mo.id', '=', 'am.motivo_id')
                 ->whereIn('a.operativo_id', $todosLosIds)
                 ->select(
                     'a.id', 'a.actanro', 'a.operativo_id', 'a.fecha', 'a.hora',
@@ -170,15 +175,15 @@ class EstadisticasOperativos extends Component
         if ($operativosGeo->isNotEmpty()) {
             $geoIds = $operativosGeo->pluck('id');
 
-            $actasCounts = DB::connection('mysql')
-                ->table('munimer_faltas.fa_acta')
+            $actasCounts = DB::connection('mysql_faltas')
+                ->table('fa_acta')
                 ->whereIn('operativo_id', $geoIds)
                 ->selectRaw('operativo_id, COUNT(*) as cnt')
                 ->groupBy('operativo_id')
                 ->get()->keyBy('operativo_id');
 
-            $registrosCounts = DB::connection('mysql')
-                ->table('munimer_faltas.fa_registro_control')
+            $registrosCounts = DB::connection('mysql_faltas')
+                ->table('fa_registro_control')
                 ->whereIn('operativo_id', $geoIds)
                 ->selectRaw('operativo_id, COUNT(*) as cnt')
                 ->groupBy('operativo_id')
