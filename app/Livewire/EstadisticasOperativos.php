@@ -6,6 +6,7 @@ use App\Models\Operativo;
 use App\Models\Departamento;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class EstadisticasOperativos extends Component
 {
@@ -93,10 +94,9 @@ class EstadisticasOperativos extends Component
                 ->first();
             if ($raw) $statsActas = $raw;
 
-            $totalRegistros = DB::connection('mysql_faltas')
-                ->table('fa_registro_control')
-                ->whereIn('operativo_id', $todosLosIds)
-                ->count();
+            $totalRegistros = Schema::connection('mysql_faltas')->hasTable('fa_registro_control')
+                ? DB::connection('mysql_faltas')->table('fa_registro_control')->whereIn('operativo_id', $todosLosIds)->count()
+                : 0;
 
             // JOIN cross-database separado en PHP: mysql_faltas no puede joinear con mysql
             $actasPorOperativo = DB::connection('mysql_faltas')
@@ -182,12 +182,9 @@ class EstadisticasOperativos extends Component
                 ->groupBy('operativo_id')
                 ->get()->keyBy('operativo_id');
 
-            $registrosCounts = DB::connection('mysql_faltas')
-                ->table('fa_registro_control')
-                ->whereIn('operativo_id', $geoIds)
-                ->selectRaw('operativo_id, COUNT(*) as cnt')
-                ->groupBy('operativo_id')
-                ->get()->keyBy('operativo_id');
+            $registrosCounts = Schema::connection('mysql_faltas')->hasTable('fa_registro_control')
+                ? DB::connection('mysql_faltas')->table('fa_registro_control')->whereIn('operativo_id', $geoIds)->selectRaw('operativo_id, COUNT(*) as cnt')->groupBy('operativo_id')->get()->keyBy('operativo_id')
+                : collect();
 
             $geoDeptIds     = $operativosGeo->pluck('departamento_id')->unique()->filter();
             $departamentosGeo = $geoDeptIds->isNotEmpty()
