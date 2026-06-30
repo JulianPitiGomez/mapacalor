@@ -276,6 +276,8 @@
                 'filterEstado'        => $filterEstado,
                 'filterFechaDesde'    => $filterFechaDesde,
                 'filterFechaHasta'    => $filterFechaHasta,
+                'sortField'           => $sortField,
+                'sortDirection'       => $sortDirection,
             ])) }}"
            title="Exportar a Excel"
            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 bg-white dark:bg-gray-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
@@ -294,6 +296,8 @@
                     'filterEstado'       => $filterEstado,
                     'filterFechaDesde'   => $filterFechaDesde,
                     'filterFechaHasta'   => $filterFechaHasta,
+                    'sortField'          => $sortField,
+                    'sortDirection'      => $sortDirection,
                 ])) }}')"
                 title="Generar reporte para imprimir"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-400 bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">

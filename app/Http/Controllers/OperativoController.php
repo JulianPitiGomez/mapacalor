@@ -53,7 +53,16 @@ class OperativoController extends Controller
             $query->whereDate('fecha', '<=', $request->filterFechaHasta);
         }
 
-        $operativos = $query->orderBy('fecha', 'desc')->orderBy('hora_desde', 'desc')->get();
+        $sortableFields = ['id', 'fecha', 'descripcion', 'lugar', 'estado'];
+        $sortField      = in_array($request->sortField, $sortableFields) ? $request->sortField : 'fecha';
+        $sortDirection  = $request->sortDirection === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortField, $sortDirection);
+        if ($sortField === 'fecha') {
+            $query->orderBy('hora_desde', $sortDirection);
+        }
+
+        $operativos = $query->get();
 
         $departamentosMap = Departamento::all()->keyBy('id');
         $inspectoresMap   = Inspector::all()->keyBy('id');
@@ -105,7 +114,16 @@ class OperativoController extends Controller
             $query->whereDate('fecha', '<=', $request->filterFechaHasta);
         }
 
-        $operativos = $query->orderBy('fecha', 'desc')->orderBy('hora_desde', 'desc')->get();
+        $sortableFields = ['id', 'fecha', 'descripcion', 'lugar', 'estado'];
+        $sortField      = in_array($request->sortField, $sortableFields) ? $request->sortField : 'fecha';
+        $sortDirection  = $request->sortDirection === 'asc' ? 'asc' : 'desc';
+
+        $query->orderBy($sortField, $sortDirection);
+        if ($sortField === 'fecha') {
+            $query->orderBy('hora_desde', $sortDirection);
+        }
+
+        $operativos = $query->get();
 
         $departamentosMap = Departamento::all()->keyBy('id');
         $inspectoresMap   = Inspector::all()->keyBy('id');
