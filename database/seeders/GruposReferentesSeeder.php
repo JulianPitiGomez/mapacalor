@@ -21,8 +21,8 @@ class GruposReferentesSeeder extends Seeder
             [
                 'nombre'                 => 'Grupo López',
                 'departamento_id'        => 1,
-                'inspector_encargado_id' => 267,
-                'inspectores_ids'        => [274, 43, 310, 129, 267, 279, 280, 257],
+                'inspector_encargado_id' => 28,
+                'inspectores_ids'        => [274, 43, 310, 129, 28, 279, 280, 257],
             ],
         ];
 
