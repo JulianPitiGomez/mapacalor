@@ -210,6 +210,7 @@
                         <th class="px-4 py-2">Fecha</th>
                         <th class="px-4 py-2">Origen</th>
                         <th class="px-4 py-2">Infractor</th>
+                        <th class="px-4 py-2">Motivos</th>
                         <th class="px-4 py-2">Dominio</th>
                         <th class="px-4 py-2">Lugar</th>
                         <th class="px-4 py-2">Inspector</th>
@@ -242,6 +243,13 @@
                                 {{ $acta->nombreinf ?: '-' }}
                                 @if($acta->dni)<div class="text-xs text-gray-400">DNI {{ $acta->dni }}</div>@endif
                             </td>
+                            <td class="px-4 py-2 min-w-[14rem]">
+                                @forelse($acta->motivos as $motivo)
+                                    <span class="inline-block max-w-[16rem] truncate align-top mb-1 px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" title="{{ $motivo }}">{{ $motivo }}</span>
+                                @empty
+                                    <span class="text-gray-400">-</span>
+                                @endforelse
+                            </td>
                             <td class="px-4 py-2 font-mono text-gray-700 dark:text-gray-300">{{ $acta->dominio ?: '-' }}</td>
                             <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $acta->lugarinfra ?: '-' }}</td>
                             <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $acta->inspector_nombre ?? '-' }}</td>
@@ -253,7 +261,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">No hay actas con los filtros seleccionados.</td>
+                            <td colspan="9" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">No hay actas con los filtros seleccionados.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -243,6 +243,17 @@ class EstadisticasActas extends Component
             ->orderByDesc('a.hora')
             ->paginate(15);
 
+        // Motivos solo de las actas de la página (por índice de acta_id, sin joins en la paginada)
+        $motivosPorActa = DB::connection('mysql_faltas')->table('fa_acta_motivo as am')
+            ->join('fa_motivo as mo', 'mo.id', '=', 'am.motivo_id')
+            ->whereIn('am.acta_id', $actas->pluck('id'))
+            ->orderBy('mo.nombre')
+            ->get(['am.acta_id', 'mo.nombre'])
+            ->groupBy('acta_id');
+        $actas->getCollection()->each(
+            fn ($acta) => $acta->motivos = $motivosPorActa->get($acta->id, collect())->pluck('nombre')->unique()->values()
+        );
+
         $charts = [
             'periodo' => [
                 'agrupacion' => $agrupacion,
