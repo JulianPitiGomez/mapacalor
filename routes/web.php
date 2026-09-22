@@ -1,16 +1,16 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\AccionController;
 use App\Http\Controllers\BarrioController;
+use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\DesenlaceController;
+use App\Http\Controllers\GrupoController;
+use App\Http\Controllers\HechoController;
+use App\Http\Controllers\HorarioController;
+use App\Http\Controllers\OperativoController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SubcategoriaController;
 use App\Http\Controllers\TipoInvolucradoController;
-use App\Http\Controllers\HorarioController;
-use App\Http\Controllers\AccionController;
-use App\Http\Controllers\DesenlaceController;
-use App\Http\Controllers\HechoController;
-use App\Http\Controllers\OperativoController;
-use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +70,11 @@ Route::middleware('auth')->group(function () {
         Route::get('estadisticas-operativos', function () {
             return view('estadisticas-operativos.index');
         })->name('estadisticas-operativos.index');
+
+        // Estadísticas de Actas (actas simples de faltas, sin las de operativos)
+        Route::get('estadisticas-actas', function () {
+            return view('estadisticas-actas.index');
+        })->name('estadisticas-actas.index');
 
         // Gestión de Operativos
         Route::get('operativos', [OperativoController::class, 'index'])->name('operativos.index');

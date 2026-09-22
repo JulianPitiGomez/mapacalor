@@ -102,6 +102,14 @@
                         Estadísticas Operativos
                     </a>
 
+                    <a href="{{ route('estadisticas-actas.index') }}" wire:navigate
+                       class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('estadisticas-actas.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Estadísticas Actas
+                    </a>
+
                     <a href="{{ route('grupos.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('grupos.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
