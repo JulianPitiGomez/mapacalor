@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Qué es este proyecto
 
-**MapaCalor** ("Observatorio de Seguridad" de la Municipalidad de Mercedes) es una aplicación Laravel 12 para registrar **hechos** (incidentes de seguridad geolocalizados) y visualizarlos como mapa de calor y estadísticas, más un módulo de gestión de **operativos** de inspección. La interfaz está en español; nombres de modelos, rutas, columnas y variables están en español.
+**MapaCalor** ("Observatorio de Seguridad" de la Municipalidad de Mercedes) es una aplicación Laravel 12 para registrar **hechos** (incidentes de seguridad geolocalizados) y visualizarlos como mapa de calor y estadísticas, más un módulo de gestión de **operativos** de inspección y estadísticas de las **actas** del sistema de faltas. La interfaz está en español; nombres de modelos, rutas, columnas y variables están en español.
 
 - **Stack:** Laravel 12 (PHP 8.2+), Livewire 3, Alpine (vía Livewire), Tailwind CSS 3, Vite 7.
 - **Frontend del mapa:** Google Maps JavaScript API (no Leaflet, pese a lo que sugieran dependencias). Requiere `GOOGLE_MAPS_API_KEY` en `.env` (`config/services.php` → `services.google.maps_api_key`).
@@ -44,21 +44,36 @@ Los modelos `Inspector` (`fa_inspector`) y `Departamento` (`fa_departamento`) vi
 
 **Etiquetas dinámicas:** `Categoria` tiene una columna `etiquetas` casteada a `array` (JSON). Son campos personalizados por categoría que `HechoForm` renderiza como inputs dinámicos (`$etiquetasCategoria`/`$valoresEtiquetas`); sus valores **no se guardan en columnas propias**, sino que se serializan como texto `nombre -> valor` dentro de `observaciones` del hecho (y se reparsean al editar). Al tocar el campo `observaciones` o las etiquetas, tener presente este formato.
 
-**Operativos** (`app/Models/Operativo.php`): operativos de inspección con `estado` (`planificado`/`en_curso`/`finalizado`/`cancelado` — ver helpers `getEstadoBadgeClassAttribute`/`getEstadoLabelAttribute`), departamento, inspector referente, y muchos inspectores (pivote `operativo_inspector` con `estado`/`observacion`). Los **grupos** agrupan inspectores reutilizables.
+**Operativos** (`app/Models/Operativo.php`): operativos de inspección con `estado` (`planificado`/`en_curso`/`finalizado`/`cancelado` — ver helpers `getEstadoBadgeClassAttribute`/`getEstadoLabelAttribute`), departamento, inspector referente, y muchos inspectores (pivote `operativo_inspector` con `estado`/`observacion`). Un mismo inspector puede ser referente de varios operativos simultáneos. Los **grupos** agrupan inspectores reutilizables. Desde junio de 2026 un inspector puede estar en más de un grupo (se quitó el unique de `grupo_inspector.inspector_id`). `GruposReferentesSeeder` carga los grupos Marengo y López: es idempotente pero **reemplaza su pivote**, y debe correr después de la migración `fix_inspector_encargado_grupo_lopez`.
+
+**Actas (base de faltas, solo lectura):** `fa_acta` (~210k filas) no tiene modelo Eloquent; se consulta con `DB::connection('mysql_faltas')->table('fa_acta')`. Datos no obvios:
+- `operativo_id > 0` = acta de un operativo. **`0` o `NULL` = sin operativo** (hay miles con 0), así que no usar `IS NOT NULL`.
+- `preacta_id > 0` = acta de **cámaras** (viene de `fa_preacta`: `FECHA`/`HORA` de captura, `LUGARINFRA`, `CONFIRMADA`; columnas en mayúsculas). Ninguna tabla guarda la ruta del video o la foto de la preacta.
+- `estado` → `fa_acta_estado` (1 Iniciada, 2 Activa, 3 Aprobada, 4 Vencida, 5 Baja). Motivos vía `fa_acta_motivo` → `fa_motivo`.
+- Las actas no tienen coordenadas: la geolocalización sale del operativo. Por eso el mapa solo muestra actas de operativos.
+- Hay fechas basura (años 3000, 9322…): filtrar siempre por rango.
+- **No hay índice en `fecha`**: cada agregado recorre la tabla (~150 ms). Joins con `fa_acta_motivo` necesitan `STRAIGHT_JOIN` (sin él MySQL arranca por motivos y tarda ~10 s).
+- Fotos de actas de operativos: `fot-<actanro con 10 dígitos>-<001..005>.jpg` en `services.actas.fotos_path`/`fotos_url` (`ACTAS_FOTOS_PATH`/`ACTAS_FOTOS_URL`).
 
 ## Patrón de UI: controladores delgados + Livewire
 
 Los controladores **casi no tienen lógica**: solo devuelven vistas Blade (ej. `HechoController` retorna `hechos.index`, `hechos.create`, `hechos.edit`). **Toda la lógica de listados, formularios, filtros y estadísticas vive en componentes Livewire** (`app/Livewire/`), montados dentro de esas vistas:
 
 - `Estadisticas` — el componente central: aplica ~20 filtros sobre `Hecho`, calcula agregados (por categoría, barrio, mes, horario, tipo/sexo/edad de involucrados, acción, desenlace) y arma `datosMapaCalor`/`datosMapaMarkers` para el mapa. Tras filtrar hace `$this->dispatch('actualizarEstadisticas')` y el JS de `resources/views/livewire/estadisticas.blade.php` redibuja el mapa de Google y los charts.
-- `HechoForm`/`HechosList`, `OperativoForm`/`OperativosList`, `GrupoForm`/`GruposList`, `UserForm`/`UsersList`, `CategoriasIndex`, `EstadisticasOperativos`.
+- `EstadisticasOperativos` — actas y registros de control de los operativos del período (detalle, motivos y fotos), más mapa de operativos.
+- `EstadisticasActas` — **solo actas simples** (excluye `operativo_id > 0`, que ya están en EstadisticasOperativos). Todos los filtros pasan por `actasFiltradas()` (fecha, inspector, departamento, origen cámaras/manuales, estado, búsqueda). Arma indicadores, gráficos (período, inspector, motivo, hora, día de semana, departamento, estado), sección de cámaras y listado paginado de 15. Los motivos del listado se traen aparte, solo para las actas de la página. Los gráficos se redibujan con el evento `actas-actualizadas` que se dispara en `render()` y escucha un bloque `@script`.
+- `HechoForm`/`HechosList`, `OperativoForm`/`OperativosList`, `GrupoForm`/`GruposList`, `UserForm`/`UsersList`, `CategoriasIndex`.
+
+**Notificaciones:** los componentes usan `$this->dispatch('toast', message: ..., type: 'success'|'error')` y el contenedor Alpine de `layouts/app.blade.php` los muestra y oculta solos. No usar `session()->flash()` ni el componente `x-flash-message`, que ya no se usa.
+
+**Paginación:** la vista publicada `resources/views/vendor/livewire/tailwind.blade.php` usa las claves `pagination.*`. Solo existen en `lang/es`, así que con `APP_LOCALE=en` se ve el texto crudo. `tailwind-sin-resumen.blade.php` es la misma vista sin la línea "Mostrando X a Y de Z" (la usa EstadisticasActas).
 
 Catálogos secundarios (subcategorías, tipos involucrados, horarios, acciones, desenlaces) **no tienen vistas propias**: se editan vía AJAX/modal con rutas `store/update/destroy` sueltas en `routes/web.php`.
 
 ## Autorización y rutas
 
 - Autenticación con **Laravel Breeze** (Blade). Rutas auth en `routes/auth.php`.
-- **Supervisores:** el flag `es_supervisor` (boolean en `users`) gobernado por el middleware `EsSupervisor` (alias `es_supervisor`, registrado en `bootstrap/app.php`). Las rutas de **operativos, grupos, usuarios y estadísticas-operativos** están detrás de `middleware('es_supervisor')` → abortan 403 si el usuario no es supervisor.
+- **Supervisores:** el flag `es_supervisor` (boolean en `users`) gobernado por el middleware `EsSupervisor` (alias `es_supervisor`, registrado en `bootstrap/app.php`). Las rutas de **operativos, grupos, usuarios, estadísticas-operativos y estadísticas-actas** están detrás de `middleware('es_supervisor')` → abortan 403 si el usuario no es supervisor.
 - `/` es la landing pública (`welcome.blade.php`); `/estadisticas` es el panel principal (auth + verified). `/dashboard` redirige a `/estadisticas` por compatibilidad.
 - **Manejo especial de error 419** (CSRF/sesión expirada) en `bootstrap/app.php`: responde JSON para peticiones AJAX/Livewire y `errors.419` para el resto. Existe también `HandleSessionExpiration` middleware.
 
@@ -66,5 +81,6 @@ Catálogos secundarios (subcategorías, tipos involucrados, horarios, acciones, 
 
 - Código nuevo en **español** para coincidir con el existente (nombres de métodos Livewire como `aplicarFiltros`, `limpiarFiltros`, variables como `$hechosFiltrados`).
 - Formatear PHP con **Pint** antes de commitear.
-- No commitear `.env`, `.env.production` ni `public/build` (ya en `.gitignore`).
+- No commitear `.env`, `.env.production` ni `public/build` (ya en `.gitignore`). Como `public/build` no está en git, **todo cambio de vistas con clases de Tailwind nuevas requiere `npm run build` en el servidor**.
+- Deploy a producción: ver `docs/deploy-produccion.md`.
 - Hay un archivo `munimer_mapacalor` en la raíz (dump SQL, ~122 KB) y un `reloj.blade.php` suelto en la raíz: no son parte del flujo de la app.

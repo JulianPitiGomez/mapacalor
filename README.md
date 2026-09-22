@@ -1,59 +1,61 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# MapaCalor — Observatorio de Seguridad
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación de la Municipalidad de Mercedes para registrar **hechos** (incidentes de seguridad geolocalizados) y verlos como mapa de calor y estadísticas. También gestiona los **operativos** de inspección y muestra estadísticas de las **actas** del sistema de faltas.
 
-## About Laravel
+Stack: Laravel 12 (PHP 8.2+), Livewire 3, Tailwind CSS 3, Vite 7, Google Maps JavaScript API, ApexCharts.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Módulos
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Módulo | Ruta | Acceso |
+|---|---|---|
+| Estadísticas de hechos (mapa de calor, gráficos, exportación Excel/PDF) | `/estadisticas` | Usuarios autenticados |
+| Hechos, Categorías, Barrios | `/hechos`, `/categorias`, `/barrios` | Usuarios autenticados |
+| Operativos | `/operativos` | Supervisores |
+| Estadísticas Operativos (actas de operativos, fotos, mapa) | `/estadisticas-operativos` | Supervisores |
+| Estadísticas Actas (actas simples de faltas, cámaras vs. manuales) | `/estadisticas-actas` | Supervisores |
+| Grupos de inspectores | `/grupos` | Supervisores |
+| Usuarios | `/usuarios` | Supervisores |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Un usuario es supervisor cuando tiene `es_supervisor = 1` en la tabla `users`. Se activa desde **Usuarios**, o directo en la base:
 
-## Learning Laravel
+```sql
+UPDATE users SET es_supervisor = 1 WHERE email = 'usuario@mercedes.gob.ar';
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Bases de datos
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+La app usa dos conexiones MySQL:
 
-## Laravel Sponsors
+- **`munimer_mapacalor`** (conexión por defecto): tablas propias de la app. Acá corren las migraciones.
+- **`munimer_faltas`** (conexión `mysql_faltas`, variables `DB_FALTAS_*`): base del sistema de faltas, **solo lectura**. De acá salen inspectores, departamentos y actas.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+SQLite no sirve: algunas relaciones usan nombres de tabla con el schema (`munimer_mapacalor.operativo_inspector`).
 
-### Premium Partners
+## Instalación local
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Requisitos: PHP 8.2+, Composer, Node.js, MySQL (en la muni se usa XAMPP en Windows) con acceso a una copia de `munimer_faltas`.
 
-## Contributing
+```bash
+composer setup      # dependencias, .env, key, migraciones, npm install y build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Completar en `.env`: `DB_*` (MySQL), `DB_FALTAS_*`, `GOOGLE_MAPS_API_KEY`, `ACTAS_FOTOS_PATH`/`ACTAS_FOTOS_URL` y `APP_LOCALE=es`.
 
-## Code of Conduct
+```bash
+php artisan db:seed --class=AdminUserSeeder   # admin@admin.com / Admin123 (supervisor; no usar en producción)
+composer dev                                  # servidor + cola + logs + Vite
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Desarrollo
 
-## Security Vulnerabilities
+```bash
+composer test         # tests
+./vendor/bin/pint     # formateo de PHP
+npm run build         # assets de producción
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+`CLAUDE.md` tiene el detalle de arquitectura y convenciones.
 
-## License
+## Deploy
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Ver [docs/deploy-produccion.md](docs/deploy-produccion.md).
