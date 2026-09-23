@@ -29,6 +29,20 @@ class EstadisticasActas extends Component
 
     public string $buscar = '';
 
+    /**
+     * Valor que el sistema de actas escribe en fa_acta.operativo_id para las actas
+     * simples que se cargan desde ahí (las de operativo llevan el id del operativo).
+     * Rige desde services.actas.nomenclatura_desde; antes no se marcaba nada.
+     */
+    public const ACTA_SIMPLE_SISTEMA = -1;
+
+    /**
+     * Departamentos de fa_departamento que le competen al Observatorio de Seguridad:
+     * 1 = DEPTO. TRANSITO, 25 = CAMARA. El resto (estacionamiento medido, inspección
+     * general, OMIC, etc.) no es materia de seguridad y no entra en esta solapa.
+     */
+    public const DEPARTAMENTOS_SEGURIDAD = [1, 25];
+
     // fa_acta_estado
     public const ESTADOS = [
         1 => 'Iniciada',
@@ -94,14 +108,53 @@ class EstadisticasActas extends Component
     }
 
     /**
+     * Fecha desde la que vale la nomenclatura operativo_id = -1, normalizada.
+     */
+    private function fechaCorteNomenclatura(): string
+    {
+        return Carbon::parse(config('services.actas.nomenclatura_desde'))->format('Y-m-d');
+    }
+
+    /**
+     * SQL: 1 si el acta viene de cámaras (la cargó el COM a partir de una preacta).
+     */
+    private function sqlEsCamara(): string
+    {
+        return 'CASE WHEN a.preacta_id > 0 THEN 1 ELSE 0 END';
+    }
+
+    /**
+     * SQL: 1 si el acta no encaja en ninguna categoría conocida, o sea que no tiene
+     * preacta, no tiene operativo y tampoco la marca del sistema de actas, habiendo
+     * sido cargada cuando esa marca ya existía. Típicamente un acta en papel.
+     * Antes de la fecha de corte siempre da 0: el histórico se cuenta como manual.
+     */
+    private function sqlEsOtro(): string
+    {
+        $corte = $this->fechaCorteNomenclatura();
+
+        return 'CASE WHEN COALESCE(a.preacta_id, 0) <= 0
+            AND COALESCE(a.operativo_id, 0) <> '.self::ACTA_SIMPLE_SISTEMA."
+            AND a.fecha >= '{$corte}' THEN 1 ELSE 0 END";
+    }
+
+    /**
      * Query base sobre fa_acta con todos los filtros aplicados.
      * Solo actas simples: las de operativos (operativo_id > 0; en faltas el 0 significa
      * "sin operativo") ya se ven en Estadísticas Operativos.
-     * Las actas de cámaras son las que vienen de una preacta (preacta_id > 0).
+     * Solo departamentos de seguridad (ver DEPARTAMENTOS_SEGURIDAD): el Observatorio no
+     * se ocupa de estacionamiento medido, inspección general ni los demás.
+     *
+     * Origen de las que quedan, excluyentes y en este orden:
+     * - Cámaras: preacta_id > 0, las carga el COM.
+     * - Manuales: las del sistema de actas (operativo_id = -1) más todo el histórico
+     *   anterior a la fecha de corte, cuando esa marca todavía no existía.
+     * - Otros: sin preacta, sin marca y posteriores al corte (papel u otra vía).
      */
     private function actasFiltradas()
     {
         $query = DB::connection('mysql_faltas')->table('fa_acta as a')
+            ->whereIn('a.dto_id', self::DEPARTAMENTOS_SEGURIDAD)
             ->where(fn ($q) => $q->whereNull('a.operativo_id')->orWhere('a.operativo_id', '<=', 0));
 
         if ($this->filterFechaDesde) {
@@ -119,7 +172,13 @@ class EstadisticasActas extends Component
         if ($this->filterOrigen === 'camaras') {
             $query->where('a.preacta_id', '>', 0);
         } elseif ($this->filterOrigen === 'manuales') {
-            $query->where(fn ($q) => $q->whereNull('a.preacta_id')->orWhere('a.preacta_id', '<=', 0));
+            $query->whereRaw('COALESCE(a.preacta_id, 0) <= 0')
+                ->where(fn ($q) => $q->where('a.operativo_id', self::ACTA_SIMPLE_SISTEMA)
+                    ->orWhere('a.fecha', '<', $this->fechaCorteNomenclatura()));
+        } elseif ($this->filterOrigen === 'otros') {
+            $query->whereRaw('COALESCE(a.preacta_id, 0) <= 0')
+                ->whereRaw('COALESCE(a.operativo_id, 0) <> ?', [self::ACTA_SIMPLE_SISTEMA])
+                ->where('a.fecha', '>=', $this->fechaCorteNomenclatura());
         }
         if ($this->filterEstado !== '') {
             $query->where('a.estado', (int) $this->filterEstado);
@@ -141,11 +200,13 @@ class EstadisticasActas extends Component
 
     public function render()
     {
-        $esCamara = 'CASE WHEN a.preacta_id > 0 THEN 1 ELSE 0 END';
+        $esCamara = $this->sqlEsCamara();
+        $esOtro = $this->sqlEsOtro();
 
         $totales = $this->actasFiltradas()
             ->selectRaw("COUNT(*) as total,
                 SUM({$esCamara}) as camaras,
+                SUM({$esOtro}) as otros,
                 SUM(a.secuestro) as secuestros,
                 SUM(a.decomiso) as decomisos,
                 SUM(a.clausura) as clausuras,
@@ -158,14 +219,14 @@ class EstadisticasActas extends Component
         $agrupacion = $this->agrupacionTemporal();
         $formatoSql = ['dia' => '%Y-%m-%d', 'mes' => '%Y-%m', 'anio' => '%Y'][$agrupacion];
         $porPeriodo = $this->actasFiltradas()
-            ->selectRaw("DATE_FORMAT(a.fecha, '{$formatoSql}') as periodo, COUNT(*) as total, SUM({$esCamara}) as camaras")
+            ->selectRaw("DATE_FORMAT(a.fecha, '{$formatoSql}') as periodo, COUNT(*) as total, SUM({$esCamara}) as camaras, SUM({$esOtro}) as otros")
             ->groupBy('periodo')
             ->orderBy('periodo')
             ->get();
 
         $porInspector = $this->actasFiltradas()
             ->leftJoin('fa_inspector as i', 'i.id', '=', 'a.inspector_id')
-            ->selectRaw("a.inspector_id, COALESCE(i.nombre, CONCAT('#', a.inspector_id)) as nombre, COUNT(*) as total, SUM({$esCamara}) as camaras")
+            ->selectRaw("a.inspector_id, COALESCE(i.nombre, CONCAT('#', a.inspector_id)) as nombre, COUNT(*) as total, SUM({$esCamara}) as camaras, SUM({$esOtro}) as otros")
             ->groupBy('a.inspector_id', 'i.nombre')
             ->orderByDesc('total')
             ->limit(15)
@@ -254,17 +315,24 @@ class EstadisticasActas extends Component
             fn ($acta) => $acta->motivos = $motivosPorActa->get($acta->id, collect())->pluck('nombre')->unique()->values()
         );
 
+        $hayOtros = (int) ($totales->otros ?? 0) > 0;
+
         $charts = [
+            // hayOtros manda: si no hay ninguna acta sin clasificar, la serie ni se arma
+            // y el gráfico queda exactamente como antes.
+            'hayOtros' => $hayOtros,
             'periodo' => [
                 'agrupacion' => $agrupacion,
                 'labels' => $porPeriodo->map(fn ($r) => $this->etiquetaPeriodo($r->periodo, $agrupacion))->values(),
                 'camaras' => $porPeriodo->map(fn ($r) => (int) $r->camaras)->values(),
-                'manuales' => $porPeriodo->map(fn ($r) => (int) $r->total - (int) $r->camaras)->values(),
+                'manuales' => $porPeriodo->map(fn ($r) => (int) $r->total - (int) $r->camaras - (int) $r->otros)->values(),
+                'otros' => $hayOtros ? $porPeriodo->map(fn ($r) => (int) $r->otros)->values() : null,
             ],
             'inspector' => [
                 'labels' => $porInspector->pluck('nombre')->values(),
                 'camaras' => $porInspector->map(fn ($r) => (int) $r->camaras)->values(),
-                'manuales' => $porInspector->map(fn ($r) => (int) $r->total - (int) $r->camaras)->values(),
+                'manuales' => $porInspector->map(fn ($r) => (int) $r->total - (int) $r->camaras - (int) $r->otros)->values(),
+                'otros' => $hayOtros ? $porInspector->map(fn ($r) => (int) $r->otros)->values() : null,
             ],
             'departamento' => [
                 'labels' => $porDepartamento->pluck('nombre')->values(),
@@ -291,11 +359,14 @@ class EstadisticasActas extends Component
 
         $this->dispatch('actas-actualizadas', charts: $charts);
 
-        $inspectoresConActas = DB::connection('mysql_faltas')->table('fa_acta')->distinct()->pluck('inspector_id');
-        $departamentosConActas = DB::connection('mysql_faltas')->table('fa_acta')->distinct()->pluck('dto_id');
+        $inspectoresConActas = DB::connection('mysql_faltas')->table('fa_acta')
+            ->whereIn('dto_id', self::DEPARTAMENTOS_SEGURIDAD)->distinct()->pluck('inspector_id');
+        $departamentosConActas = DB::connection('mysql_faltas')->table('fa_acta')
+            ->whereIn('dto_id', self::DEPARTAMENTOS_SEGURIDAD)->distinct()->pluck('dto_id');
 
         return view('livewire.estadisticas-actas', [
             'totales' => $totales,
+            'hayOtros' => $hayOtros,
             'camaras' => $camaras,
             'lugaresCamaras' => $lugaresCamaras,
             'actas' => $actas,

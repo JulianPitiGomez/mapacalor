@@ -4,6 +4,8 @@
     $cardClass = 'bg-white dark:bg-gray-800 p-4 rounded-lg shadow';
     $total = (int) ($totales->total ?? 0);
     $totalCamaras = (int) ($totales->camaras ?? 0);
+    $totalOtros = (int) ($totales->otros ?? 0);
+    $totalManuales = $total - $totalCamaras - $totalOtros;
     $porcentaje = fn ($n) => $total > 0 ? round($n * 100 / $total, 1) : 0;
 @endphp
 
@@ -48,7 +50,10 @@
                 <select wire:model.live="filterOrigen" class="{{ $inputClass }}">
                     <option value="">Todas</option>
                     <option value="camaras">Cámaras (con preacta)</option>
-                    <option value="manuales">Manuales (sin preacta)</option>
+                    <option value="manuales">Manuales del sistema</option>
+                    @if($hayOtros)
+                        <option value="otros">Otros</option>
+                    @endif
                 </select>
             </div>
             <div>
@@ -88,16 +93,19 @@
     {{-- ================================================================ --}}
     {{-- INDICADORES                                                       --}}
     {{-- ================================================================ --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
-        @foreach([
+    <div class="grid grid-cols-2 md:grid-cols-4 {{ $hayOtros ? 'lg:grid-cols-8' : 'lg:grid-cols-7' }} gap-3 mb-6">
+        @foreach(array_merge([
             ['Total actas', $total, null, 'text-gray-900 dark:text-gray-100'],
             ['Cámaras', $totalCamaras, $porcentaje($totalCamaras).'%', 'text-blue-600 dark:text-blue-400'],
-            ['Manuales', $total - $totalCamaras, $porcentaje($total - $totalCamaras).'%', 'text-green-600 dark:text-green-400'],
+            ['Manuales', $totalManuales, $porcentaje($totalManuales).'%', 'text-green-600 dark:text-green-400'],
+        ], $hayOtros ? [
+            ['Otros', $totalOtros, $porcentaje($totalOtros).'%', 'text-amber-600 dark:text-amber-400'],
+        ] : [], [
             ['Secuestros', (int) $totales->secuestros, null, 'text-gray-900 dark:text-gray-100'],
             ['Retención lic.', (int) $totales->retiene_lic, null, 'text-gray-900 dark:text-gray-100'],
             ['Decomisos / Clausuras', (int) $totales->decomisos.' / '.(int) $totales->clausuras, null, 'text-gray-900 dark:text-gray-100'],
             ['Bajas', (int) $totales->bajas, $porcentaje((int) $totales->bajas).'%', 'text-red-600 dark:text-red-400'],
-        ] as [$titulo, $valor, $detalle, $color])
+        ]) as [$titulo, $valor, $detalle, $color])
             <div class="{{ $cardClass }}">
                 <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ $titulo }}</div>
                 <div class="mt-1 text-2xl font-bold {{ $color }}">{{ is_int($valor) ? number_format($valor, 0, ',', '.') : $valor }}</div>
@@ -278,6 +286,15 @@
     const oscuro = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
     const COLOR_CAMARAS = '#144BE9';
     const COLOR_MANUALES = '#77BF43';
+    const COLOR_OTROS = '#E8912D';
+
+    // La serie "Otros" solo se suma si el backend la mandó (charts.hayOtros).
+    function serieOtros(datos) {
+        return datos ? [{ name: 'Otros', data: datos }] : [];
+    }
+    function colores(hayOtros) {
+        return hayOtros ? [COLOR_CAMARAS, COLOR_MANUALES, COLOR_OTROS] : [COLOR_CAMARAS, COLOR_MANUALES];
+    }
     let graficos = {};
 
     function base(tipo, alto, extra = {}) {
@@ -297,8 +314,9 @@
                 series: [
                     { name: 'Cámaras', data: charts.periodo.camaras },
                     { name: 'Manuales', data: charts.periodo.manuales },
+                    ...serieOtros(charts.periodo.otros),
                 ],
-                colors: [COLOR_CAMARAS, COLOR_MANUALES],
+                colors: colores(charts.hayOtros),
                 xaxis: { categories: charts.periodo.labels, labels: { rotate: -45, hideOverlappingLabels: true } },
             }),
             chartActasInspector: base('bar', 420, {
@@ -307,8 +325,9 @@
                 series: [
                     { name: 'Cámaras', data: charts.inspector.camaras },
                     { name: 'Manuales', data: charts.inspector.manuales },
+                    ...serieOtros(charts.inspector.otros),
                 ],
-                colors: [COLOR_CAMARAS, COLOR_MANUALES],
+                colors: colores(charts.hayOtros),
                 xaxis: { categories: charts.inspector.labels },
             }),
             chartActasMotivo: base('bar', 420, {
