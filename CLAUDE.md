@@ -83,6 +83,7 @@ Catálogos secundarios (subcategorías, tipos involucrados, horarios, acciones, 
 
 - Código nuevo en **español** para coincidir con el existente (nombres de métodos Livewire como `aplicarFiltros`, `limpiarFiltros`, variables como `$hechosFiltrados`).
 - Formatear PHP con **Pint** antes de commitear.
-- No commitear `.env`, `.env.production` ni `public/build` (ya en `.gitignore`). Como `public/build` no está en git, **todo cambio de vistas con clases de Tailwind nuevas requiere `npm run build` en el servidor**.
+- No commitear `.env` ni `.env.production` (ya en `.gitignore`).
+- **`public/build` sí está en git** (desde septiembre de 2026): en el servidor oficial no hay permisos para correr `npm run build`. Todo cambio de vistas, CSS o JS requiere **`npm run build` local y commitear `public/build`** junto con el cambio; si no, producción queda con clases de Tailwind faltantes. `public/hot` sigue ignorado (lo crea `npm run dev`).
 - Deploy a producción: ver `docs/deploy-produccion.md`.
 - Hay un archivo `munimer_mapacalor` en la raíz (dump SQL, ~122 KB) y un `reloj.blade.php` suelto en la raíz: no son parte del flujo de la app.

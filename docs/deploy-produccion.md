@@ -32,14 +32,14 @@ php artisan down                      # modo mantenimiento
 
 git pull origin main
 php artisan migrate --force           # --force es obligatorio en producción
-npm run build                         # o subir public/build compilado en otra máquina
 php artisan optimize:clear            # limpia caché de config, rutas y vistas
 php artisan optimize                  # solo si producción usa caché de config/rutas
 
 php artisan up
 ```
 
-- **`npm run build` es obligatorio** cuando cambian las vistas: Tailwind solo incluye las clases que encuentra al compilar, y `public/build` no está en git. Si el servidor no tiene Node, compilar en otra máquina y subir `public/build` completo.
+- **No se corre `npm run build` en el servidor** (no hay permisos): `public/build` viene compilado en el repo y llega con el `git pull`. Quien hace cambios de vistas, CSS o JS tiene que correr `npm run build` en su máquina y commitear `public/build`.
+- **Primera vez con `public/build` en git:** si el servidor tiene un `public/build` viejo sin versionar, `git pull` falla con *untracked working tree files would be overwritten*. Renombrarlo antes del pull (`mv public/build public/build.viejo`) y borrarlo cuando todo ande.
 - **`composer install`** solo hace falta si cambió `composer.lock`. Ante la duda: `composer install --no-dev --optimize-autoloader`.
 - **Sin `optimize:clear`** la ruta nueva (`/estadisticas-actas`) da 404 si las rutas estaban cacheadas.
 
@@ -69,7 +69,7 @@ php artisan db:seed --class=GruposReferentesSeeder --force
 1. Entrar con un usuario supervisor (`es_supervisor = 1`; sin eso no se ven Operativos, Grupos, Usuarios ni las estadísticas de operativos y actas).
 2. **Estadísticas Actas** aparece debajo de Estadísticas Operativos; los gráficos se dibujan y responden a los filtros.
 3. **Estadísticas Operativos** sigue mostrando las actas de cada operativo con sus fotos.
-4. Si algo se ve desalineado o sin estilos: faltó `npm run build` o subir `public/build`.
+4. Si algo se ve desalineado o sin estilos: el `public/build` commiteado no está actualizado (faltó `npm run build` antes del commit) o quedó caché del navegador.
 
 ## Rendimiento conocido
 
