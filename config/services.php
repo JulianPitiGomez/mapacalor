@@ -43,12 +43,13 @@ return [
         'fotos_path' => env('ACTAS_FOTOS_PATH'),
         'fotos_url' => env('ACTAS_FOTOS_URL'),
 
-        // Fecha desde la que el sistema de actas marca las actas simples con
-        // operativo_id = -1. Antes de esta fecha la marca no existía, así que la
-        // ausencia de -1 no significa nada y el acta se cuenta como manual.
-        // El deploy del sistema de actas fue el 22/09/2026 por la tarde, así que el
-        // corte es el 23: las actas del 22 anteriores al deploy no llevan la marca.
-        'nomenclatura_desde' => env('ACTAS_NOMENCLATURA_DESDE', '2026-09-23'),
+        // Fecha de carga (fa_acta.crea_fecha) desde la que el sistema de actas marca
+        // las actas simples con operativo_id = -1. Antes la marca no existía, así que
+        // la ausencia de -1 no significa nada y el acta se cuenta como manual.
+        // El deploy del sistema de actas en producción fue el 23/09/2026 durante el
+        // día, así que el corte es el 24: las actas cargadas el 23 antes del deploy
+        // no llevan la marca.
+        'nomenclatura_desde' => env('ACTAS_NOMENCLATURA_DESDE', '2026-09-24'),
     ],
 
 ];

@@ -108,7 +108,7 @@ class EstadisticasActas extends Component
     }
 
     /**
-     * Fecha desde la que vale la nomenclatura operativo_id = -1, normalizada.
+     * Fecha de carga desde la que vale la nomenclatura operativo_id = -1, normalizada.
      */
     private function fechaCorteNomenclatura(): string
     {
@@ -127,7 +127,10 @@ class EstadisticasActas extends Component
      * SQL: 1 si el acta no encaja en ninguna categoría conocida, o sea que no tiene
      * preacta, no tiene operativo y tampoco la marca del sistema de actas, habiendo
      * sido cargada cuando esa marca ya existía. Típicamente un acta en papel.
-     * Antes de la fecha de corte siempre da 0: el histórico se cuenta como manual.
+     * Se compara la fecha de carga (crea_fecha), no la de la infracción: un acta en
+     * papel se puede cargar días después, y lo que decide si lleva la marca es con
+     * qué sistema y cuándo se cargó.
+     * Cargada antes de la fecha de corte siempre da 0: el histórico se cuenta como manual.
      */
     private function sqlEsOtro(): string
     {
@@ -135,7 +138,7 @@ class EstadisticasActas extends Component
 
         return 'CASE WHEN COALESCE(a.preacta_id, 0) <= 0
             AND COALESCE(a.operativo_id, 0) <> '.self::ACTA_SIMPLE_SISTEMA."
-            AND a.fecha >= '{$corte}' THEN 1 ELSE 0 END";
+            AND a.crea_fecha >= '{$corte}' THEN 1 ELSE 0 END";
     }
 
     /**
@@ -148,8 +151,8 @@ class EstadisticasActas extends Component
      * Origen de las que quedan, excluyentes y en este orden:
      * - Cámaras: preacta_id > 0, las carga el COM.
      * - Manuales: las del sistema de actas (operativo_id = -1) más todo el histórico
-     *   anterior a la fecha de corte, cuando esa marca todavía no existía.
-     * - Otros: sin preacta, sin marca y posteriores al corte (papel u otra vía).
+     *   cargado antes de la fecha de corte, cuando esa marca todavía no existía.
+     * - Otros: sin preacta, sin marca y cargadas desde el corte (papel u otra vía).
      */
     private function actasFiltradas()
     {
