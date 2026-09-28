@@ -2,18 +2,20 @@
 
 namespace App\Livewire;
 
-use App\Models\Grupo;
+use App\Livewire\Concerns\RequiereEdicion;
 use App\Models\Departamento;
+use App\Models\Grupo;
 use App\Models\Inspector;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB;
 
 class GruposList extends Component
 {
-    use WithPagination;
+    use RequiereEdicion, WithPagination;
 
     public $search = '';
+
     public $filterDepartamento = '';
 
     protected $queryString = [
@@ -33,6 +35,8 @@ class GruposList extends Component
 
     public function deleteGrupo($grupoId)
     {
+        $this->autorizarEdicion();
+
         $grupo = Grupo::findOrFail($grupoId);
         DB::table('grupo_inspector')->where('grupo_id', $grupoId)->delete();
         $grupo->delete();
@@ -45,7 +49,7 @@ class GruposList extends Component
         $query = Grupo::query();
 
         if ($this->search) {
-            $query->where('nombre', 'like', '%' . $this->search . '%');
+            $query->where('nombre', 'like', '%'.$this->search.'%');
         }
 
         if ($this->filterDepartamento) {

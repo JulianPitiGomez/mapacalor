@@ -10,7 +10,7 @@ class EsSupervisor
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! auth()->user()?->es_supervisor) {
+        if (! auth()->user()?->esSupervisor()) {
             abort(403);
         }
 

@@ -2,23 +2,31 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Concerns\RequiereEdicion;
+use App\Models\Departamento;
 use App\Models\Grupo;
 use App\Models\Inspector;
-use App\Models\Departamento;
-use Livewire\Component;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 class GrupoForm extends Component
 {
+    use RequiereEdicion;
+
     public $grupoId = null;
+
     public $isEdit = false;
 
     public $nombre;
+
     public $departamento_id;
+
     public $inspector_encargado_id;
+
     public $inspectores_ids = [];
 
     public $departamentos = [];
+
     public $inspectores = [];
 
     public function mount($grupoId = null)
@@ -67,7 +75,7 @@ class GrupoForm extends Component
 
             $inspectoresDelDepartamento = $this->inspectores->pluck('id')->toArray();
 
-            if ($this->inspector_encargado_id && !in_array($this->inspector_encargado_id, $inspectoresDelDepartamento)) {
+            if ($this->inspector_encargado_id && ! in_array($this->inspector_encargado_id, $inspectoresDelDepartamento)) {
                 $this->inspector_encargado_id = null;
             }
 
@@ -84,7 +92,7 @@ class GrupoForm extends Component
         // Auto-incluir al encargado como miembro del grupo
         if ($this->inspector_encargado_id) {
             $encargadoId = (int) $this->inspector_encargado_id;
-            if (!in_array($encargadoId, array_map('intval', $this->inspectores_ids))) {
+            if (! in_array($encargadoId, array_map('intval', $this->inspectores_ids))) {
                 $this->inspectores_ids[] = (string) $encargadoId;
             }
         }
@@ -92,6 +100,8 @@ class GrupoForm extends Component
 
     public function save()
     {
+        $this->autorizarEdicion();
+
         $this->validate([
             'nombre' => 'required|string|max:255',
             'departamento_id' => 'required|integer',
@@ -109,7 +119,7 @@ class GrupoForm extends Component
         // Asegurar que el encargado esté en los miembros
         $encargadoId = (int) $this->inspector_encargado_id;
         $inspectoresIds = array_map('intval', $this->inspectores_ids);
-        if (!in_array($encargadoId, $inspectoresIds)) {
+        if (! in_array($encargadoId, $inspectoresIds)) {
             $inspectoresIds[] = $encargadoId;
         }
 
@@ -123,9 +133,10 @@ class GrupoForm extends Component
 
         $inspectoresEnOtroGrupo = $query->pluck('inspector_id')->toArray();
 
-        if (!empty($inspectoresEnOtroGrupo)) {
+        if (! empty($inspectoresEnOtroGrupo)) {
             $nombres = Inspector::whereIn('id', $inspectoresEnOtroGrupo)->pluck('nombre')->implode(', ');
             $this->addError('inspectores_ids', "Los siguientes inspectores ya pertenecen a otro grupo: {$nombres}");
+
             return;
         }
 
@@ -156,13 +167,14 @@ class GrupoForm extends Component
                 'updated_at' => $now,
             ])->toArray();
 
-            if (!empty($pivotData)) {
+            if (! empty($pivotData)) {
                 DB::table('grupo_inspector')->insert($pivotData);
             }
 
             return $this->redirect(route('grupos.index'), navigate: true);
         } catch (\Exception $e) {
-            $this->dispatch('toast', message: 'Error al guardar el grupo: ' . $e->getMessage(), type: 'error');
+            $this->dispatch('toast', message: 'Error al guardar el grupo: '.$e->getMessage(), type: 'error');
+
             return null;
         }
     }

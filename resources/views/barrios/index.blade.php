@@ -4,9 +4,11 @@
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                 {{ __('Barrios') }}
             </h2>
+            @if(auth()->user()->puedeEditar())
             <a href="{{ route('barrios.create') }}" wire:navigate class="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition ease-in-out duration-150">
                 Nuevo Barrio
             </a>
+            @endif
         </div>
     </x-slot>
 
@@ -62,6 +64,7 @@
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            @if(auth()->user()->puedeEditar())
                                             <a href="{{ route('barrios.edit', $barrio) }}" wire:navigate
                                                class="inline-flex items-center justify-center w-8 h-8 text-secondary hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-lg transition-colors mr-2"
                                                title="Editar">
@@ -80,6 +83,7 @@
                                                     </svg>
                                                 </button>
                                             </form>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty

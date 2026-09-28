@@ -16,7 +16,7 @@
             <div class="hidden md:grid md:grid-cols-12 gap-2 px-4 py-3 bg-primary dark:bg-primary-700 text-sm font-semibold text-white uppercase tracking-wider">
                 <div class="col-span-4">Nombre</div>
                 <div class="col-span-4">Email</div>
-                <div class="col-span-2">Supervisor</div>
+                <div class="col-span-2">Rol</div>
                 <div class="col-span-2 text-right">Acciones</div>
             </div>
 
@@ -38,16 +38,21 @@
                             <span class="text-sm text-gray-700 dark:text-gray-300">{{ $user->email }}</span>
                         </div>
 
-                        {{-- Supervisor --}}
+                        {{-- Rol --}}
                         <div class="col-span-2">
-                            <span class="md:hidden text-xs font-medium text-gray-500">Supervisor: </span>
-                            @if ($user->es_supervisor)
+                            <span class="md:hidden text-xs font-medium text-gray-500">Rol: </span>
+                            @if ($user->esSupervisor())
                                 <span class="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200">
-                                    Sí
+                                    Supervisor
+                                </span>
+                            @elseif ($user->esVisualizador())
+                                <span class="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-100"
+                                      title="Solapas: {{ collect($user->solapasVisibles())->map(fn ($s) => \App\Models\User::SOLAPAS[$s]['label'])->implode(', ') ?: 'ninguna' }}">
+                                    Visualizador ({{ count($user->solapasVisibles()) }})
                                 </span>
                             @else
                                 <span class="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                                    No
+                                    Normal
                                 </span>
                             @endif
                         </div>

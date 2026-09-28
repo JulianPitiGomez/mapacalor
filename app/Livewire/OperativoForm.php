@@ -2,43 +2,62 @@
 
 namespace App\Livewire;
 
-use App\Models\Operativo;
-use App\Models\Inspector;
+use App\Livewire\Concerns\RequiereEdicion;
 use App\Models\Departamento;
 use App\Models\Grupo;
-use Livewire\Component;
+use App\Models\Inspector;
+use App\Models\Operativo;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 class OperativoForm extends Component
 {
+    use RequiereEdicion;
+
     public $operativoId = null;
+
     public $isEdit = false;
 
     // Campos del formulario
     public $descripcion;
+
     public $lugar;
+
     public $latitud;
+
     public $longitud;
+
     public $fecha;
+
     public $hora_desde;
+
     public $hora_hasta;
+
     public $estado = 'planificado';
+
     public $departamento_id;
+
     public $inspector_referente_id;
+
     public $observaciones;
+
     public $inspectores_ids = [];
 
     // Campos de solo lectura (cargados por el encargado en otro modulo)
     public $hora_apertura_real;
+
     public $hora_cierre_real;
+
     public $acompanamiento_policial;
+
     public $inspectores_participantes = []; // datos pivot con estado y observacion
 
     public $operativosActivosDelReferente = [];
 
     // Datos para los selects
     public $departamentos = [];
+
     public $inspectores = [];
 
     protected $listeners = ['refreshComponent' => '$refresh'];
@@ -93,6 +112,7 @@ class OperativoForm extends Component
 
         $this->inspectores_participantes = $pivotRows->map(function ($pivot) use ($inspectoresMap) {
             $inspector = $inspectoresMap->get($pivot->inspector_id);
+
             return [
                 'id' => $pivot->inspector_id,
                 'nombre' => $inspector->nombre ?? '-',
@@ -119,11 +139,11 @@ class OperativoForm extends Component
                 ->orderBy('fecha')
                 ->get(['id', 'descripcion', 'fecha', 'lugar', 'estado'])
                 ->map(fn ($op) => [
-                    'id'          => $op->id,
+                    'id' => $op->id,
                     'descripcion' => $op->descripcion,
-                    'fecha'       => $op->fecha->format('d/m/Y'),
-                    'lugar'       => $op->lugar,
-                    'estado'      => $op->estado_label,
+                    'fecha' => $op->fecha->format('d/m/Y'),
+                    'lugar' => $op->lugar,
+                    'estado' => $op->estado_label,
                 ])
                 ->toArray();
         }
@@ -142,7 +162,7 @@ class OperativoForm extends Component
             // Limpiar selecciones si los inspectores ya no pertenecen al departamento
             $inspectoresDelDepartamento = $this->inspectores->pluck('id')->toArray();
 
-            if ($this->inspector_referente_id && !in_array($this->inspector_referente_id, $inspectoresDelDepartamento)) {
+            if ($this->inspector_referente_id && ! in_array($this->inspector_referente_id, $inspectoresDelDepartamento)) {
                 $this->inspector_referente_id = null;
             }
 
@@ -186,11 +206,11 @@ class OperativoForm extends Component
                 ->orderBy('fecha')
                 ->get(['id', 'descripcion', 'fecha', 'lugar', 'estado'])
                 ->map(fn ($op) => [
-                    'id'          => $op->id,
+                    'id' => $op->id,
                     'descripcion' => $op->descripcion,
-                    'fecha'       => $op->fecha->format('d/m/Y'),
-                    'lugar'       => $op->lugar,
-                    'estado'      => $op->estado_label,
+                    'fecha' => $op->fecha->format('d/m/Y'),
+                    'lugar' => $op->lugar,
+                    'estado' => $op->estado_label,
                 ])
                 ->toArray();
         }
@@ -198,9 +218,11 @@ class OperativoForm extends Component
 
     public function save()
     {
+        $this->autorizarEdicion();
+
         \Log::info('=== INICIANDO GUARDADO DE OPERATIVO ===');
-        \Log::info('isEdit: ' . ($this->isEdit ? 'true' : 'false'));
-        \Log::info('operativoId: ' . ($this->operativoId ?? 'null'));
+        \Log::info('isEdit: '.($this->isEdit ? 'true' : 'false'));
+        \Log::info('operativoId: '.($this->operativoId ?? 'null'));
 
         try {
             $validated = $this->validate([
@@ -230,7 +252,7 @@ class OperativoForm extends Component
 
             \Log::info('Validación exitosa');
         } catch (\Exception $e) {
-            \Log::error('Error en validación: ' . $e->getMessage());
+            \Log::error('Error en validación: '.$e->getMessage());
             throw $e;
         }
 
@@ -251,7 +273,7 @@ class OperativoForm extends Component
 
         try {
             if ($this->isEdit) {
-                \Log::info('Actualizando operativo ID: ' . $this->operativoId);
+                \Log::info('Actualizando operativo ID: '.$this->operativoId);
                 $operativo = Operativo::findOrFail($this->operativoId);
                 $operativo->update($data);
                 \Log::info('Operativo actualizado exitosamente');
@@ -259,7 +281,7 @@ class OperativoForm extends Component
             } else {
                 \Log::info('Creando nuevo operativo');
                 $operativo = Operativo::create($data);
-                \Log::info('Operativo creado con ID: ' . $operativo->id);
+                \Log::info('Operativo creado con ID: '.$operativo->id);
                 $this->dispatch('toast', message: 'Operativo registrado exitosamente.', type: 'success');
             }
 
@@ -275,16 +297,18 @@ class OperativoForm extends Component
                 'updated_at' => $now,
             ])->toArray();
 
-            if (!empty($pivotData)) {
+            if (! empty($pivotData)) {
                 DB::connection('mysql')->table('operativo_inspector')->insert($pivotData);
             }
 
             \Log::info('Redirigiendo a index');
+
             return $this->redirect(route('operativos.index'), navigate: true);
         } catch (\Exception $e) {
-            \Log::error('Error al guardar operativo: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            $this->dispatch('toast', message: 'Error al guardar el operativo: ' . $e->getMessage(), type: 'error');
+            \Log::error('Error al guardar operativo: '.$e->getMessage());
+            \Log::error('Stack trace: '.$e->getTraceAsString());
+            $this->dispatch('toast', message: 'Error al guardar el operativo: '.$e->getMessage(), type: 'error');
+
             return null;
         }
     }

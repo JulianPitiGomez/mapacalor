@@ -2,25 +2,34 @@
 
 namespace App\Livewire;
 
-use App\Models\Operativo;
+use App\Livewire\Concerns\RequiereEdicion;
 use App\Models\Departamento;
 use App\Models\Inspector;
+use App\Models\Operativo;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB;
 
 class OperativosList extends Component
 {
-    use WithPagination;
+    use RequiereEdicion, WithPagination;
 
     public $search = '';
+
     public $filterDepartamento = '';
+
     public $filterEstado = '';
+
     public $filterFechaDesde = '';
+
     public $filterFechaHasta = '';
+
     public $filterQuick = '';
+
     public $sortField = 'fecha';
+
     public $sortDirection = 'desc';
+
     public $showMap = false;
 
     protected $queryString = [
@@ -71,7 +80,7 @@ class OperativosList extends Component
     public function sortBy($field)
     {
         $sortableFields = ['id', 'fecha', 'descripcion', 'lugar', 'estado'];
-        if (!in_array($field, $sortableFields)) {
+        if (! in_array($field, $sortableFields)) {
             return;
         }
         if ($this->sortField === $field) {
@@ -108,11 +117,13 @@ class OperativosList extends Component
 
     public function toggleMap()
     {
-        $this->showMap = !$this->showMap;
+        $this->showMap = ! $this->showMap;
     }
 
     public function deleteOperativo($operativoId)
     {
+        $this->autorizarEdicion();
+
         $operativo = Operativo::findOrFail($operativoId);
         DB::connection('mysql')->table('operativo_inspector')->where('operativo_id', $operativoId)->delete();
         $operativo->delete();
@@ -122,6 +133,8 @@ class OperativosList extends Component
 
     public function cambiarEstado($operativoId, $nuevoEstado)
     {
+        $this->autorizarEdicion();
+
         $operativo = Operativo::findOrFail($operativoId);
         $operativo->update(['estado' => $nuevoEstado]);
 
@@ -134,10 +147,10 @@ class OperativosList extends Component
         $query = Operativo::query();
 
         if ($this->search) {
-            $query->where(function($q) {
-                $q->where('id', 'like', '%' . $this->search . '%')
-                  ->orWhere('descripcion', 'like', '%' . $this->search . '%')
-                  ->orWhere('lugar', 'like', '%' . $this->search . '%');
+            $query->where(function ($q) {
+                $q->where('id', 'like', '%'.$this->search.'%')
+                    ->orWhere('descripcion', 'like', '%'.$this->search.'%')
+                    ->orWhere('lugar', 'like', '%'.$this->search.'%');
             });
         }
 
@@ -195,7 +208,7 @@ class OperativosList extends Component
             ->whereNotNull('latitud')
             ->whereNotNull('longitud')
             ->get()
-            ->map(function($op) use ($departamentosMap, $inspectoresMap) {
+            ->map(function ($op) use ($departamentosMap, $inspectoresMap) {
                 return [
                     'id' => $op->id,
                     'descripcion' => $op->descripcion,

@@ -2,26 +2,33 @@
 
 namespace App\Livewire;
 
-use App\Models\Hecho;
-use App\Models\Categoria;
+use App\Livewire\Concerns\RequiereEdicion;
 use App\Models\Barrio;
+use App\Models\Categoria;
+use App\Models\Hecho;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Str;
 
 class HechosList extends Component
 {
-    use WithPagination;
+    use RequiereEdicion, WithPagination;
 
     public $search = '';
+
     public $filterCategoria = '';
+
     public $filterBarrio = '';
+
     public $filterFechaDesde = '';
+
     public $filterFechaHasta = '';
 
     // Filtros de etiquetas dinámicas
     public $etiquetasCategoria = [];
+
     public $filtrosEtiquetas = [];
+
     public $mapaEtiquetas = []; // clave_slug => nombre_original
 
     protected $queryString = [
@@ -93,6 +100,8 @@ class HechosList extends Component
 
     public function deleteHecho($hechoId)
     {
+        $this->autorizarEdicion();
+
         $hecho = Hecho::findOrFail($hechoId);
         $hecho->delete();
 
@@ -104,9 +113,9 @@ class HechosList extends Component
         $query = Hecho::with(['categoria', 'subcategoria', 'barrio', 'user']);
 
         if ($this->search) {
-            $query->where(function($q) {
-                $q->where('id', 'like', '%' . $this->search . '%')
-                  ->orWhere('observaciones', 'like', '%' . $this->search . '%');
+            $query->where(function ($q) {
+                $q->where('id', 'like', '%'.$this->search.'%')
+                    ->orWhere('observaciones', 'like', '%'.$this->search.'%');
             });
         }
 
@@ -127,18 +136,18 @@ class HechosList extends Component
         }
 
         // Filtros de etiquetas dinámicas
-        if (!empty($this->filtrosEtiquetas) && !empty($this->mapaEtiquetas)) {
+        if (! empty($this->filtrosEtiquetas) && ! empty($this->mapaEtiquetas)) {
             foreach ($this->filtrosEtiquetas as $clave => $valor) {
                 // Asegurarse de que el valor sea string
                 if (is_array($valor)) {
                     continue;
                 }
                 $valorLimpio = trim((string) $valor);
-                if (!empty($valorLimpio)) {
+                if (! empty($valorLimpio)) {
                     // Obtener el nombre original de la etiqueta
                     $nombreOriginal = $this->mapaEtiquetas[$clave] ?? $clave;
                     // Buscar en observaciones el patrón "Etiqueta -> valor"
-                    $query->where('observaciones', 'like', '%' . $nombreOriginal . ' -> %' . $valorLimpio . '%');
+                    $query->where('observaciones', 'like', '%'.$nombreOriginal.' -> %'.$valorLimpio.'%');
                 }
             }
         }
@@ -150,7 +159,7 @@ class HechosList extends Component
         return view('livewire.hechos-list', [
             'hechos' => $hechos,
             'categorias' => $categorias,
-            'barrios' => $barrios
+            'barrios' => $barrios,
         ]);
     }
 }

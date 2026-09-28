@@ -13,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'es_supervisor' => \App\Http\Middleware\EsSupervisor::class,
+            'solapa' => \App\Http\Middleware\PuedeVerSolapa::class,
+            'bloquear_edicion' => \App\Http\Middleware\BloquearEdicion::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -23,7 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 if ($request->expectsJson() || $request->header('X-Livewire')) {
                     return response()->json([
                         'message' => 'Tu sesión ha expirado. Por favor, recarga la página.',
-                        'redirect' => route('login')
+                        'redirect' => route('login'),
                     ], 419);
                 }
 

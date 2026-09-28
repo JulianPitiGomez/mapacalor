@@ -116,6 +116,7 @@
                                 <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $hecho->barrio->nombre ?? '-' }}</td>
                                 <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $hecho->user->name }}</td>
                                 <td class="sticky right-0 px-6 py-3 whitespace-nowrap text-right text-sm font-medium {{ $rowBg }} group-hover:bg-indigo-50 dark:group-hover:bg-gray-700 transition-colors">
+                                    @if(auth()->user()->puedeEditar())
                                     <a href="{{ route('hechos.edit', $hecho) }}" wire:navigate
                                        class="inline-flex items-center justify-center w-8 h-8 text-secondary hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-lg transition-colors mr-2"
                                        title="Editar">
@@ -131,6 +132,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                         </svg>
                                     </button>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

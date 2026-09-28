@@ -2,13 +2,14 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Concerns\RequiereEdicion;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class UsersList extends Component
 {
-    use WithPagination;
+    use RequiereEdicion, WithPagination;
 
     public $search = '';
 
@@ -23,8 +24,11 @@ class UsersList extends Component
 
     public function deleteUser($userId)
     {
+        $this->autorizarEdicion();
+
         if ($userId == auth()->id()) {
             $this->dispatch('toast', message: 'No puedes eliminar tu propio usuario.', type: 'error');
+
             return;
         }
 
@@ -40,8 +44,8 @@ class UsersList extends Component
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('email', 'like', '%' . $this->search . '%');
+                $q->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('email', 'like', '%'.$this->search.'%');
             });
         }
 

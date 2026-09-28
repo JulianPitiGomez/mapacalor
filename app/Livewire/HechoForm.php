@@ -2,52 +2,78 @@
 
 namespace App\Livewire;
 
-use App\Models\Hecho;
+use App\Livewire\Concerns\RequiereEdicion;
+use App\Models\Accion;
+use App\Models\Barrio;
 use App\Models\Categoria;
+use App\Models\Desenlace;
+use App\Models\Hecho;
+use App\Models\Horario;
 use App\Models\Subcategoria;
 use App\Models\TipoInvolucrado;
-use App\Models\Horario;
-use App\Models\Accion;
-use App\Models\Desenlace;
-use App\Models\Barrio;
-use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Livewire\Component;
 
 class HechoForm extends Component
 {
+    use RequiereEdicion;
+
     public $hechoId = null;
+
     public $isEdit = false;
 
     // Campos del formulario
     public $fecha_hecho;
+
     public $categoria_id;
+
     public $subcategoria_id;
+
     public $tipo_involucrado1_id;
+
     public $sexo_involucrado1 = 'Sin datos';
+
     public $edad_involucrado1;
+
     public $tipo_involucrado2_id;
+
     public $sexo_involucrado2 = 'Sin datos';
+
     public $edad_involucrado2;
+
     public $horario_id;
+
     public $accion_id;
+
     public $desenlace_id;
+
     public $latitud;
+
     public $longitud;
+
     public $barrio_id;
+
     public $observaciones;
 
     // Datos para los selects
     public $categorias = [];
+
     public $subcategorias = [];
+
     public $tiposInvolucrados = [];
+
     public $horarios = [];
+
     public $acciones = [];
+
     public $desenlaces = [];
+
     public $barrios = [];
 
     // Etiquetas dinámicas de la categoría
     public $etiquetasCategoria = [];
+
     public $valoresEtiquetas = [];
 
     protected $listeners = ['refreshComponent' => '$refresh'];
@@ -140,7 +166,7 @@ class HechoForm extends Component
                 if ($hecho->observaciones) {
                     foreach ($mapaEtiquetas as $nombre => $clave) {
                         // Buscar patrón "Etiqueta -> valor"
-                        if (preg_match('/^' . preg_quote($nombre, '/') . '\s*->\s*(.*)$/m', $hecho->observaciones, $matches)) {
+                        if (preg_match('/^'.preg_quote($nombre, '/').'\s*->\s*(.*)$/m', $hecho->observaciones, $matches)) {
                             $this->valoresEtiquetas[$clave] = trim($matches[1]);
                         }
                     }
@@ -151,12 +177,12 @@ class HechoForm extends Component
                     foreach ($lineas as $linea) {
                         $esEtiqueta = false;
                         foreach (array_keys($mapaEtiquetas) as $nombre) {
-                            if (preg_match('/^' . preg_quote($nombre, '/') . '\s*->/', $linea)) {
+                            if (preg_match('/^'.preg_quote($nombre, '/').'\s*->/', $linea)) {
                                 $esEtiqueta = true;
                                 break;
                             }
                         }
-                        if (!$esEtiqueta && trim($linea) !== '') {
+                        if (! $esEtiqueta && trim($linea) !== '') {
                             $observacionesLimpias[] = $linea;
                         }
                     }
@@ -236,9 +262,11 @@ class HechoForm extends Component
 
     public function save()
     {
+        $this->autorizarEdicion();
+
         \Log::info('=== INICIANDO GUARDADO DE HECHO ===');
-        \Log::info('isEdit: ' . ($this->isEdit ? 'true' : 'false'));
-        \Log::info('hechoId: ' . ($this->hechoId ?? 'null'));
+        \Log::info('isEdit: '.($this->isEdit ? 'true' : 'false'));
+        \Log::info('hechoId: '.($this->hechoId ?? 'null'));
 
         try {
             $validated = $this->validate([
@@ -262,7 +290,7 @@ class HechoForm extends Component
 
             \Log::info('Validación exitosa');
         } catch (\Exception $e) {
-            \Log::error('Error en validación: ' . $e->getMessage());
+            \Log::error('Error en validación: '.$e->getMessage());
             throw $e;
         }
 
@@ -270,7 +298,7 @@ class HechoForm extends Component
         $observacionesFinales = '';
 
         // Agregar etiquetas con valores
-        if (!empty($this->etiquetasCategoria) && !empty($this->valoresEtiquetas)) {
+        if (! empty($this->etiquetasCategoria) && ! empty($this->valoresEtiquetas)) {
             $etiquetasTexto = [];
             foreach ($this->etiquetasCategoria as $etiqueta) {
                 // Obtener nombre original y clave slug
@@ -283,21 +311,21 @@ class HechoForm extends Component
                     continue;
                 }
                 $valorLimpio = trim((string) $valor);
-                if (!empty($valorLimpio)) {
+                if (! empty($valorLimpio)) {
                     // Usar el nombre original (con espacios) para guardar en observaciones
-                    $etiquetasTexto[] = $nombre . ' -> ' . $valorLimpio;
+                    $etiquetasTexto[] = $nombre.' -> '.$valorLimpio;
                 }
             }
-            if (!empty($etiquetasTexto)) {
+            if (! empty($etiquetasTexto)) {
                 $observacionesFinales = implode("\n", $etiquetasTexto);
             }
         }
 
         // Agregar observaciones adicionales si existen
         $obsAdicionales = is_string($this->observaciones) ? trim($this->observaciones) : '';
-        if (!empty($obsAdicionales)) {
-            if (!empty($observacionesFinales)) {
-                $observacionesFinales .= "\n" . $obsAdicionales;
+        if (! empty($obsAdicionales)) {
+            if (! empty($observacionesFinales)) {
+                $observacionesFinales .= "\n".$obsAdicionales;
             } else {
                 $observacionesFinales = $obsAdicionales;
             }
@@ -325,7 +353,7 @@ class HechoForm extends Component
 
         try {
             if ($this->isEdit) {
-                \Log::info('Actualizando hecho ID: ' . $this->hechoId);
+                \Log::info('Actualizando hecho ID: '.$this->hechoId);
                 $hecho = Hecho::findOrFail($this->hechoId);
                 \Log::info('Hecho encontrado, actualizando...');
                 \Log::info('Datos a actualizar:', $data);
@@ -336,16 +364,18 @@ class HechoForm extends Component
                 \Log::info('Creando nuevo hecho');
                 \Log::info('Datos a crear:', $data);
                 $hecho = Hecho::create($data);
-                \Log::info('Hecho creado con ID: ' . $hecho->id);
+                \Log::info('Hecho creado con ID: '.$hecho->id);
                 $this->dispatch('toast', message: 'Hecho registrado exitosamente.', type: 'success');
             }
 
             \Log::info('Redirigiendo a index');
+
             return $this->redirect(route('hechos.index'), navigate: true);
         } catch (\Exception $e) {
-            \Log::error('Error al guardar hecho: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            $this->dispatch('toast', message: 'Error al guardar el hecho: ' . $e->getMessage(), type: 'error');
+            \Log::error('Error al guardar hecho: '.$e->getMessage());
+            \Log::error('Stack trace: '.$e->getTraceAsString());
+            $this->dispatch('toast', message: 'Error al guardar el hecho: '.$e->getMessage(), type: 'error');
+
             return null;
         }
     }

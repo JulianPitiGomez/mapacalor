@@ -75,8 +75,18 @@ Catálogos secundarios (subcategorías, tipos involucrados, horarios, acciones, 
 ## Autorización y rutas
 
 - Autenticación con **Laravel Breeze** (Blade). Rutas auth en `routes/auth.php`.
-- **Supervisores:** el flag `es_supervisor` (boolean en `users`) gobernado por el middleware `EsSupervisor` (alias `es_supervisor`, registrado en `bootstrap/app.php`). Las rutas de **operativos, grupos, usuarios, estadísticas-operativos y estadísticas-actas** están detrás de `middleware('es_supervisor')` → abortan 403 si el usuario no es supervisor.
-- `/` es la landing pública (`welcome.blade.php`); `/estadisticas` es el panel principal (auth + verified). `/dashboard` redirige a `/estadisticas` por compatibilidad.
+- **Roles.** La columna `users.rol` define tres roles (constantes en `App\Models\User`):
+  - `normal`: ve y edita las cuatro solapas básicas (`User::SOLAPAS_BASICAS` = Estadísticas, Hechos, Categorías, Barrios).
+  - `supervisor`: ve y edita todo, incluidos Operativos, Grupos, Estadísticas Operativos, Estadísticas Actas y la gestión de Usuarios.
+  - `visualizador`: **solo lectura**, y solo sobre las solapas que se le tildan en el alta del usuario (columna `users.solapas`, JSON con los slugs de `User::SOLAPAS`). La gestión de Usuarios **no** es asignable: `User::SOLAPAS` tiene ocho solapas y Usuarios no está entre ellas.
+- El flag `es_supervisor` (boolean) **se mantiene sincronizado** desde `UserForm::save()` por compatibilidad, pero la autorización ya no lo lee: todo pasa por `User::esSupervisor()` / `puedeVer()` / `puedeEditar()`.
+- Tres middlewares (alias en `bootstrap/app.php`):
+  - `solapa:<slug>` (`PuedeVerSolapa`) → 403 si el usuario no tiene esa solapa. Cada grupo de rutas de `routes/web.php` lleva el suyo.
+  - `bloquear_edicion` (`BloquearEdicion`) → envuelve todo salvo el perfil propio; a un visualizador le corta con 403 cualquier petición que no sea GET y las rutas `*.create` / `*.edit`.
+  - `es_supervisor` (`EsSupervisor`) → sigue existiendo, pero ahora solo protege la gestión de Usuarios.
+- **Las acciones Livewire no pasan por esos middlewares** (van por `POST /livewire/update`). Los componentes que escriben usan el trait `App\Livewire\Concerns\RequiereEdicion` y llaman `$this->autorizarEdicion()` al principio del método (`save`, `deleteHecho`, `deleteOperativo`, `cambiarEstado`, etc.). **Todo método Livewire nuevo que guarde o borre tiene que llamarlo.**
+- En las vistas, los botones de alta/edición/borrado van envueltos en `@if(auth()->user()->puedeEditar())` y los links del sidebar (`layouts/app.blade.php`) en `@if(auth()->user()->puedeVer('<slug>'))`.
+- `/` es la landing pública (`welcome.blade.php`); `/estadisticas` es el panel principal (auth + verified). `/dashboard` redirige a `User::rutaInicio()` (la primera solapa habilitada), porque un visualizador puede no tener Estadísticas.
 - **Manejo especial de error 419** (CSRF/sesión expirada) en `bootstrap/app.php`: responde JSON para peticiones AJAX/Livewire y `errors.419` para el resto. Existe también `HandleSessionExpiration` middleware.
 
 ## Convenciones

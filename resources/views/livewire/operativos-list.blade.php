@@ -470,6 +470,7 @@
 
                         {{-- Acciones --}}
                         <div class="col-span-1 flex justify-end items-center space-x-1">
+                            @if(auth()->user()->puedeEditar())
                             {{-- Menu de cambio de estado --}}
                             <div x-data="{
                                 open: false,
@@ -524,6 +525,7 @@
                                 </svg>
                             </button>
                         </div>
+                            @endif
                     </div>
                 @empty
                     <div class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">

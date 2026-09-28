@@ -48,6 +48,17 @@
 
                 <!-- Navigation -->
                 <nav class="px-4 py-6 space-y-2 overflow-y-auto h-[calc(100vh-8rem)]">
+                    @php
+                        $usuario = auth()->user();
+                        // El separador solo aparece si hay algo debajo suyo.
+                        $puedeVerGestion = $usuario->esSupervisor()
+                            || $usuario->puedeVer('operativos')
+                            || $usuario->puedeVer('estadisticas-operativos')
+                            || $usuario->puedeVer('estadisticas-actas')
+                            || $usuario->puedeVer('grupos');
+                    @endphp
+
+                    @if(auth()->user()->puedeVer('estadisticas'))
                     <a href="{{ route('estadisticas') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('estadisticas') || request()->routeIs('dashboard') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +66,9 @@
                         </svg>
                         Estadísticas
                     </a>
+                    @endif
 
+                    @if(auth()->user()->puedeVer('hechos'))
                     <a href="{{ route('hechos.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('hechos.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +76,9 @@
                         </svg>
                         Hechos
                     </a>
+                    @endif
 
+                    @if(auth()->user()->puedeVer('categorias'))
                     <a href="{{ route('categorias.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('categorias.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +86,9 @@
                         </svg>
                         Categorías
                     </a>
+                    @endif
 
+                    @if(auth()->user()->puedeVer('barrios'))
                     <a href="{{ route('barrios.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('barrios.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,11 +97,14 @@
                         </svg>
                         Barrios
                     </a>
+                    @endif
 
-                    @if(auth()->user()->es_supervisor)
+                    @if($puedeVerGestion)
                     <!-- Separador -->
                     <div class="my-4 border-t border-gray-600"></div>
+                    @endif
 
+                    @if(auth()->user()->puedeVer('operativos'))
                     <a href="{{ route('operativos.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('operativos.index', 'operativos.create', 'operativos.edit', 'operativos.reporte', 'operativos.exportar') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +112,9 @@
                         </svg>
                         Operativos
                     </a>
+                    @endif
 
+                    @if(auth()->user()->puedeVer('estadisticas-operativos'))
                     <a href="{{ route('estadisticas-operativos.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('estadisticas-operativos.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +123,9 @@
                         </svg>
                         Estadísticas Operativos
                     </a>
+                    @endif
 
+                    @if(auth()->user()->puedeVer('estadisticas-actas'))
                     <a href="{{ route('estadisticas-actas.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('estadisticas-actas.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +133,9 @@
                         </svg>
                         Estadísticas Actas
                     </a>
+                    @endif
 
+                    @if(auth()->user()->puedeVer('grupos'))
                     <a href="{{ route('grupos.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('grupos.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +143,9 @@
                         </svg>
                         Grupos
                     </a>
+                    @endif
 
+                    @if(auth()->user()->esSupervisor())
                     <a href="{{ route('usuarios.index') }}" wire:navigate
                        class="flex items-center px-4 py-3 text-gray-200 rounded-lg transition-colors {{ request()->routeIs('usuarios.*') ? 'bg-primary font-semibold text-white' : 'hover:bg-secondary hover:text-white' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

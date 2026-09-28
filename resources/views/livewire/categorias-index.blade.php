@@ -124,6 +124,7 @@
                                     @endif
                                 </td>
                                 <td class="sticky right-0 px-6 py-3 whitespace-nowrap text-right text-sm font-medium {{ $rowBg }} group-hover:bg-indigo-50 dark:group-hover:bg-gray-700 transition-colors">
+                                    @if(auth()->user()->puedeEditar())
                                     <a href="{{ route('categorias.edit', $categoria) }}" wire:navigate
                                        class="inline-flex items-center justify-center w-8 h-8 text-secondary hover:bg-secondary-50 dark:hover:bg-secondary-900 rounded-lg transition-colors mr-2"
                                        title="Editar">
@@ -142,6 +143,7 @@
                                             </svg>
                                         </button>
                                     </form>
+                                    @endif
                                 </td>
                             </tr>
                         @empty

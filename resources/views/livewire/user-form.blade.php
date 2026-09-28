@@ -44,17 +44,50 @@
                         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
                 </div>
 
-                {{-- Supervisor --}}
+                {{-- Rol --}}
                 <div class="md:col-span-2">
-                    <label class="flex items-center">
-                        <input type="checkbox" wire:model="es_supervisor"
-                            class="rounded border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600">
-                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Es supervisor</span>
-                    </label>
+                    <label for="rol" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rol</label>
+                    <select wire:model.live="rol" id="rol"
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm">
+                        @foreach ($roles as $valor => $etiqueta)
+                            <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                        @endforeach
+                    </select>
+                    @error('rol')
+                        <span class="text-red-500 text-xs mt-1">{{ $message }}</span>
+                    @enderror
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Los supervisores tienen acceso a la gestión de Operativos y Usuarios.
+                        @if ($rol === $rolSupervisor)
+                            Accede a todo el sistema, incluida la gestión de Operativos, Grupos y Usuarios.
+                        @elseif ($rol === $rolVisualizador)
+                            Solo consulta: ve únicamente las solapas tildadas y no puede crear, editar ni eliminar nada.
+                        @else
+                            Carga y edita Hechos, Categorías y Barrios, y ve las Estadísticas.
+                        @endif
                     </p>
                 </div>
+
+                {{-- Solapas habilitadas (solo para visualizadores) --}}
+                @if ($rol === $rolVisualizador)
+                    <div class="md:col-span-2">
+                        <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Solapas que puede ver</span>
+                        <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                            @foreach ($solapasDisponibles as $slug => $solapa)
+                                <label class="flex items-center">
+                                    <input type="checkbox" wire:model="solapas" value="{{ $slug }}"
+                                        class="rounded border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ $solapa['label'] }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('solapas')
+                            <span class="text-red-500 text-xs mt-1">{{ $message }}</span>
+                        @enderror
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            La gestión de Usuarios no se puede habilitar: es exclusiva de los supervisores.
+                        </p>
+                    </div>
+                @endif
             </div>
 
             {{-- Botones --}}
