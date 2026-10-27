@@ -7,17 +7,34 @@
     $totalOtros = (int) ($totales->otros ?? 0);
     $totalManuales = $total - $totalCamaras - $totalOtros;
     $porcentaje = fn ($n) => $total > 0 ? round($n * 100 / $total, 1) : 0;
+    // Filtros que viven en la fila desplegable: si alguno está puesto, arranca abierta
+    // y el botón muestra cuántos hay, para que no queden filtros escondidos sin aviso.
+    $filtrosAvanzados = collect([$filterInspector, $filterDepartamento, $filterEstado, trim($buscar)])
+        ->filter(fn ($v) => $v !== '')
+        ->count();
+    $medidasTotal = (int) ($medidas->total ?? 0);
+    $medidasConMedida = (int) ($medidas->con_medida ?? 0);
 @endphp
 
 <div>
     {{-- ================================================================ --}}
     {{-- FILTROS                                                           --}}
     {{-- ================================================================ --}}
-    <div class="mb-6 {{ $cardClass }}">
+    <div class="mb-6 {{ $cardClass }}" x-data="{ masFiltros: {{ $filtrosAvanzados ? 'true' : 'false' }} }">
         <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Filtros</h3>
             <div class="flex items-center gap-3">
                 <span wire:loading class="text-xs text-gray-400">Cargando…</span>
+                <button type="button" @click="masFiltros = !masFiltros"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <span x-text="masFiltros ? 'Menos filtros' : 'Más filtros'">Más filtros</span>
+                    @if($filtrosAvanzados)
+                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 text-[0.65rem] font-bold">{{ $filtrosAvanzados }}</span>
+                    @endif
+                    <svg class="w-3.5 h-3.5 transition-transform" :class="masFiltros ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
                 <button wire:click="limpiarFiltros" type="button"
                     class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                     Limpiar filtros
@@ -56,6 +73,11 @@
                     @endif
                 </select>
             </div>
+        </div>
+
+        {{-- Segunda fila: aparece solo al desplegar "Más filtros" --}}
+        <div x-show="masFiltros" x-cloak x-transition.opacity
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <div>
                 <label class="{{ $labelClass }}">Inspector</label>
                 <select wire:model.live="filterInspector" class="{{ $inputClass }}">
@@ -91,29 +113,99 @@
     </div>
 
     {{-- ================================================================ --}}
-    {{-- INDICADORES                                                       --}}
+    {{-- INDICADORES · ACTAS (responden a los filtros de arriba)           --}}
     {{-- ================================================================ --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 {{ $hayOtros ? 'lg:grid-cols-8' : 'lg:grid-cols-7' }} gap-3 mb-6">
-        @foreach(array_merge([
-            ['Total actas', $total, null, 'text-gray-900 dark:text-gray-100'],
-            ['Cámaras', $totalCamaras, $porcentaje($totalCamaras).'%', 'text-blue-600 dark:text-blue-400'],
-            ['Manuales', $totalManuales, $porcentaje($totalManuales).'%', 'text-green-600 dark:text-green-400'],
-        ], $hayOtros ? [
-            ['Otros', $totalOtros, $porcentaje($totalOtros).'%', 'text-amber-600 dark:text-amber-400'],
-        ] : [], [
-            ['Secuestros', (int) $totales->secuestros, null, 'text-gray-900 dark:text-gray-100'],
-            ['Retención lic.', (int) $totales->retiene_lic, null, 'text-gray-900 dark:text-gray-100'],
-            ['Decomisos / Clausuras', (int) $totales->decomisos.' / '.(int) $totales->clausuras, null, 'text-gray-900 dark:text-gray-100'],
-            ['Bajas', (int) $totales->bajas, $porcentaje((int) $totales->bajas).'%', 'text-red-600 dark:text-red-400'],
-        ]) as [$titulo, $valor, $detalle, $color])
-            <div class="{{ $cardClass }}">
-                <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ $titulo }}</div>
-                <div class="mt-1 text-2xl font-bold {{ $color }}">{{ is_int($valor) ? number_format($valor, 0, ',', '.') : $valor }}</div>
-                @if($detalle)
-                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ $detalle }} del total</div>
-                @endif
+    <div class="mb-6">
+        <div class="flex items-baseline gap-2 mb-2">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Actas por origen</h3>
+            <span class="text-xs text-gray-400 dark:text-gray-500">según los filtros de arriba</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 {{ $hayOtros ? 'lg:grid-cols-5' : 'lg:grid-cols-4' }} gap-3">
+            @foreach(array_merge([
+                ['Total actas', $total, null, 'text-gray-900 dark:text-gray-100'],
+                ['Cámaras', $totalCamaras, $porcentaje($totalCamaras).'%', 'text-blue-600 dark:text-blue-400'],
+                ['Manuales', $totalManuales, $porcentaje($totalManuales).'%', 'text-green-600 dark:text-green-400'],
+            ], $hayOtros ? [
+                ['Otros', $totalOtros, $porcentaje($totalOtros).'%', 'text-amber-600 dark:text-amber-400'],
+            ] : [], [
+                ['Bajas', (int) $totales->bajas, $porcentaje((int) $totales->bajas).'%', 'text-red-600 dark:text-red-400'],
+            ]) as [$titulo, $valor, $detalle, $color])
+                <div class="{{ $cardClass }}">
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ $titulo }}</div>
+                    <div class="mt-1 text-2xl font-bold {{ $color }}">{{ number_format($valor, 0, ',', '.') }}</div>
+                    @if($detalle)
+                        <div class="text-xs text-gray-400 dark:text-gray-500">{{ $detalle }} del total</div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ================================================================ --}}
+    {{-- INDICADORES · MEDIDAS PREVENTIVAS (filtro propio, independiente)  --}}
+    {{-- ================================================================ --}}
+    <div class="{{ $cardClass }} mb-6">
+        <div class="flex flex-wrap items-end justify-between gap-3 mb-3">
+            <div>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Medidas preventivas</h3>
+                    <span wire:loading.delay wire:target="filterMedidasQuick,filterMedidasFechaDesde,filterMedidasFechaHasta" class="text-xs text-gray-400">Cargando…</span>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    Medidas tomadas en las actas del período elegido acá abajo. Tiene su propio filtro:
+                    no depende del origen ni del resto de los filtros de arriba.
+                </p>
             </div>
-        @endforeach
+            <div class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="{{ $labelClass }}">Período</label>
+                    <select wire:model.live="filterMedidasQuick" class="{{ $inputClass }}">
+                        <option value="">— Personalizado —</option>
+                        <option value="hoy">Hoy</option>
+                        <option value="semana">Esta semana</option>
+                        <option value="mes">Este mes</option>
+                        <option value="anio">Este año</option>
+                        <option value="12meses">Últimos 12 meses</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="{{ $labelClass }}">Desde</label>
+                    <input type="date" wire:model.live="filterMedidasFechaDesde" class="{{ $inputClass }}">
+                </div>
+                <div>
+                    <label class="{{ $labelClass }}">Hasta</label>
+                    <input type="date" wire:model.live="filterMedidasFechaHasta" class="{{ $inputClass }}">
+                </div>
+                <button wire:click="limpiarFiltrosMedidas" type="button"
+                    class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    Reiniciar
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            @foreach([
+                ['Secuestros', (int) $medidas->secuestros, 'text-orange-600 dark:text-orange-400'],
+                ['Decomisos', (int) $medidas->decomisos, 'text-purple-600 dark:text-purple-400'],
+                ['Clausuras', (int) $medidas->clausuras, 'text-red-600 dark:text-red-400'],
+                ['Retenciones de licencia', (int) $medidas->retenciones, 'text-indigo-600 dark:text-indigo-400'],
+            ] as [$titulo, $valor, $color])
+                <div class="rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-3 py-2.5">
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ $titulo }}</div>
+                    <div class="text-xl font-bold leading-tight {{ $color }}">{{ number_format($valor, 0, ',', '.') }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">
+                        {{ $medidasTotal > 0 ? round($valor * 100 / $medidasTotal, 1) : 0 }}% de las actas del período
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <p class="text-xs font-medium text-gray-700 dark:text-gray-200 mt-2.5">
+            {{ number_format($medidasConMedida, 0, ',', '.') }} de {{ number_format($medidasTotal, 0, ',', '.') }} actas
+            del período tienen al menos una medida preventiva
+            ({{ $medidasTotal > 0 ? round($medidasConMedida * 100 / $medidasTotal, 1) : 0 }}%).
+            <span class="font-normal text-gray-500 dark:text-gray-400">Una misma acta puede tener más de una.</span>
+        </p>
     </div>
 
     {{-- ================================================================ --}}

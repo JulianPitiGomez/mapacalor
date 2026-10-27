@@ -30,6 +30,18 @@ class EstadisticasActas extends Component
     public string $buscar = '';
 
     /**
+     * Filtros propios del bloque de medidas preventivas (secuestros, decomisos,
+     * clausuras y retenciones de licencia). Son independientes de los filtros de
+     * arriba a propósito: las medidas se cuentan sobre todas las actas del período,
+     * sin importar el origen, el inspector ni el estado.
+     */
+    public string $filterMedidasQuick = 'mes';
+
+    public string $filterMedidasFechaDesde = '';
+
+    public string $filterMedidasFechaHasta = '';
+
+    /**
      * Valor que el sistema de actas escribe en fa_acta.operativo_id para las actas
      * simples que se cargan desde ahí (las de operativo llevan el id del operativo).
      * Rige desde services.actas.nomenclatura_desde; antes no se marcaba nada.
@@ -56,6 +68,8 @@ class EstadisticasActas extends Component
     {
         $this->filterFechaDesde = now()->startOfMonth()->format('Y-m-d');
         $this->filterFechaHasta = now()->format('Y-m-d');
+        $this->filterMedidasFechaDesde = $this->filterFechaDesde;
+        $this->filterMedidasFechaHasta = $this->filterFechaHasta;
     }
 
     public function updatingFilterFechaDesde(): void
@@ -68,32 +82,55 @@ class EstadisticasActas extends Component
         $this->filterQuick = '';
     }
 
+    public function updatingFilterMedidasFechaDesde(): void
+    {
+        $this->filterMedidasQuick = '';
+    }
+
+    public function updatingFilterMedidasFechaHasta(): void
+    {
+        $this->filterMedidasQuick = '';
+    }
+
+    /**
+     * Fecha de inicio que corresponde a cada período rápido, o null si no es uno.
+     */
+    private function desdeQuick(string $value): ?string
+    {
+        return match ($value) {
+            'hoy' => now()->format('Y-m-d'),
+            'semana' => now()->startOfWeek()->format('Y-m-d'),
+            'mes' => now()->startOfMonth()->format('Y-m-d'),
+            'anio' => now()->startOfYear()->format('Y-m-d'),
+            '12meses' => now()->subMonths(12)->addDay()->format('Y-m-d'),
+            default => null,
+        };
+    }
+
     public function updatingFilterQuick(string $value): void
     {
-        switch ($value) {
-            case 'hoy':
-                $this->filterFechaDesde = now()->format('Y-m-d');
-                break;
-            case 'semana':
-                $this->filterFechaDesde = now()->startOfWeek()->format('Y-m-d');
-                break;
-            case 'mes':
-                $this->filterFechaDesde = now()->startOfMonth()->format('Y-m-d');
-                break;
-            case 'anio':
-                $this->filterFechaDesde = now()->startOfYear()->format('Y-m-d');
-                break;
-            case '12meses':
-                $this->filterFechaDesde = now()->subMonths(12)->addDay()->format('Y-m-d');
-                break;
-            default:
-                return;
+        if ($desde = $this->desdeQuick($value)) {
+            $this->filterFechaDesde = $desde;
+            $this->filterFechaHasta = now()->format('Y-m-d');
         }
-        $this->filterFechaHasta = now()->format('Y-m-d');
+    }
+
+    public function updatingFilterMedidasQuick(string $value): void
+    {
+        if ($desde = $this->desdeQuick($value)) {
+            $this->filterMedidasFechaDesde = $desde;
+            $this->filterMedidasFechaHasta = now()->format('Y-m-d');
+        }
     }
 
     public function updated(string $propiedad): void
     {
+        // Las medidas preventivas tienen su propio período y no tocan el listado,
+        // así que no hace falta volver a la página 1 por ellas.
+        if (str_starts_with($propiedad, 'filterMedidas')) {
+            return;
+        }
+
         if (str_starts_with($propiedad, 'filter') || $propiedad === 'buscar') {
             $this->resetPage();
         }
@@ -105,6 +142,12 @@ class EstadisticasActas extends Component
         $this->filterQuick = 'mes';
         $this->updatingFilterQuick('mes');
         $this->resetPage();
+    }
+
+    public function limpiarFiltrosMedidas(): void
+    {
+        $this->filterMedidasQuick = 'mes';
+        $this->updatingFilterMedidasQuick('mes');
     }
 
     /**
@@ -156,9 +199,7 @@ class EstadisticasActas extends Component
      */
     private function actasFiltradas()
     {
-        $query = DB::connection('mysql_faltas')->table('fa_acta as a')
-            ->whereIn('a.dto_id', self::DEPARTAMENTOS_SEGURIDAD)
-            ->where(fn ($q) => $q->whereNull('a.operativo_id')->orWhere('a.operativo_id', '<=', 0));
+        $query = $this->baseActas();
 
         if ($this->filterFechaDesde) {
             $query->where('a.fecha', '>=', $this->filterFechaDesde);
@@ -201,6 +242,37 @@ class EstadisticasActas extends Component
         return $query;
     }
 
+    /**
+     * Universo de actas de esta solapa, sin ningún filtro de pantalla: actas simples
+     * (las de operativo ya están en Estadísticas Operativos) de los departamentos de
+     * seguridad.
+     */
+    private function baseActas()
+    {
+        return DB::connection('mysql_faltas')->table('fa_acta as a')
+            ->whereIn('a.dto_id', self::DEPARTAMENTOS_SEGURIDAD)
+            ->where(fn ($q) => $q->whereNull('a.operativo_id')->orWhere('a.operativo_id', '<=', 0));
+    }
+
+    /**
+     * Query de las medidas preventivas: solo mira su propio rango de fechas, así que
+     * los totales de secuestros, decomisos, clausuras y retenciones no dependen del
+     * origen del acta ni del resto de los filtros de arriba.
+     */
+    private function medidasFiltradas()
+    {
+        $query = $this->baseActas();
+
+        if ($this->filterMedidasFechaDesde) {
+            $query->where('a.fecha', '>=', $this->filterMedidasFechaDesde);
+        }
+        if ($this->filterMedidasFechaHasta) {
+            $query->where('a.fecha', '<=', $this->filterMedidasFechaHasta);
+        }
+
+        return $query;
+    }
+
     public function render()
     {
         $esCamara = $this->sqlEsCamara();
@@ -210,12 +282,20 @@ class EstadisticasActas extends Component
             ->selectRaw("COUNT(*) as total,
                 SUM({$esCamara}) as camaras,
                 SUM({$esOtro}) as otros,
-                SUM(a.secuestro) as secuestros,
-                SUM(a.decomiso) as decomisos,
-                SUM(a.clausura) as clausuras,
-                SUM(a.retiene_lic) as retiene_lic,
                 SUM(CASE WHEN a.estado = 5 THEN 1 ELSE 0 END) as bajas,
                 COUNT(DISTINCT a.inspector_id) as inspectores")
+            ->first();
+
+        // Medidas preventivas: bloque aparte, con su propio período. Las columnas son
+        // tinyint(1) pero hay un puñado de filas con -1, así que se cuenta "distinto de
+        // cero" en lugar de sumar el valor.
+        $medidas = $this->medidasFiltradas()
+            ->selectRaw('COUNT(*) as total,
+                SUM(a.secuestro <> 0) as secuestros,
+                SUM(a.decomiso <> 0) as decomisos,
+                SUM(a.clausura <> 0) as clausuras,
+                SUM(a.retiene_lic <> 0) as retenciones,
+                SUM(a.secuestro <> 0 OR a.decomiso <> 0 OR a.clausura <> 0 OR a.retiene_lic <> 0) as con_medida')
             ->first();
 
         // Evolución temporal: agrupa por día, mes o año según el largo del rango
@@ -369,6 +449,7 @@ class EstadisticasActas extends Component
 
         return view('livewire.estadisticas-actas', [
             'totales' => $totales,
+            'medidas' => $medidas,
             'hayOtros' => $hayOtros,
             'camaras' => $camaras,
             'lugaresCamaras' => $lugaresCamaras,
