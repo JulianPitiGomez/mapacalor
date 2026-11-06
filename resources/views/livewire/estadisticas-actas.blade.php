@@ -300,9 +300,11 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Listado de actas</h3>
-            <span class="ml-auto text-xs text-gray-400">{{ number_format($actas->total(), 0, ',', '.') }} resultados</span>
+            <span class="ml-auto text-xs text-gray-400">
+                <span class="hidden md:inline text-gray-400 dark:text-gray-500">Clic en un acta para ver el detalle · </span>{{ number_format($actas->total(), 0, ',', '.') }} resultados
+            </span>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto" data-scroll-actas>
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                 <thead class="bg-gray-50 dark:bg-gray-700/50">
                     <tr class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -315,11 +317,21 @@
                         <th class="px-4 py-2">Lugar</th>
                         <th class="px-4 py-2">Inspector</th>
                         <th class="px-4 py-2">Estado</th>
+                        {{-- Columna de la flecha: fijada al borde derecho visible --}}
+                        <th class="sticky right-0 w-16 pl-2 pr-4 py-2 bg-gray-50 dark:bg-gray-700"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                    @forelse($actas as $acta)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30" wire:key="acta-{{ $acta->id }}">
+                @forelse($actas as $acta)
+                    {{-- Un tbody por acta: la fila de detalle es hermana de la fila del acta
+                         y comparten el estado de Alpine del desplegable. --}}
+                    <tbody class="border-t border-gray-100 dark:border-gray-700"
+                           wire:key="acta-{{ $acta->id }}"
+                           x-data="{ detalle: false, fotoActual: null, indiceActual: 0, fotos: [] }"
+                           x-init="fotos = JSON.parse($el.dataset.fotos || '[]')"
+                           data-fotos="{{ json_encode($acta->fotos) }}">
+                        <tr @click="detalle = !detalle"
+                            class="group cursor-pointer transition-colors"
+                            :class="detalle ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'">
                             <td class="px-4 py-2 font-mono text-gray-900 dark:text-gray-100">
                                 {{ $acta->actanro }}
                                 <div class="text-xs text-gray-400 font-sans">{{ $acta->departamento_nombre }}</div>
@@ -358,13 +370,234 @@
                                     {{ $estados[$acta->estado] ?? $acta->estado }}
                                 </span>
                             </td>
+                            {{-- La flecha va a la derecha, como en Estadísticas Operativos, pero
+                                 fijada al borde visible: la tabla puede ser más ancha que el
+                                 contenedor y con el scroll horizontal quedaba cortada.
+                                 La celda necesita fondo propio (es sticky) y lo copia de la fila. --}}
+                            <td class="sticky right-0 w-16 pl-2 pr-4 py-2 align-middle transition-colors"
+                                :class="detalle ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'bg-white dark:bg-gray-800 group-hover:bg-gray-50 dark:group-hover:bg-gray-700/30'">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    @if(count($acta->fotos) > 0)
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400 flex-shrink-0" title="{{ count($acta->fotos) }} foto(s)">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                        </span>
+                                    @endif
+                                    <svg class="w-4 h-4 text-gray-400 transition-transform duration-200 flex-shrink-0"
+                                         :class="detalle ? 'rotate-180' : ''"
+                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                            </td>
                         </tr>
-                    @empty
+
+                        {{-- DETALLE DEL ACTA --}}
+                        <tr x-show="detalle" x-cloak
+                            class="bg-slate-50 dark:bg-gray-900/40 border-t border-indigo-100 dark:border-indigo-900/30">
+                            <td colspan="10" class="p-0">
+                                {{-- La celda mide lo que mide la tabla, que puede ser más ancha que
+                                     la pantalla. El panel se fija al ancho visible y acompaña el
+                                     scroll horizontal, así las tarjetas nunca quedan fuera de vista. --}}
+                                <div class="sticky left-0 px-6 py-4"
+                                     x-init="$nextTick(() => { const c = $el.closest('[data-scroll-actas]'); if (c?.clientWidth) $el.style.width = c.clientWidth + 'px'; })"
+                                     @resize.window="const c = $el.closest('[data-scroll-actas]'); if (c?.clientWidth) $el.style.width = c.clientWidth + 'px'">
+                                {{-- Dos tarjetas por fila y cada una con sus datos en dos columnas:
+                                     así el detalle queda bajo y aprovecha el ancho de la pantalla. --}}
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs items-start">
+
+                                    @if($acta->motivos->isNotEmpty())
+                                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-3 border border-indigo-100 dark:border-indigo-900/40">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Motivos de Infracción</div>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            @foreach($acta->motivos as $motivo)
+                                                <span class="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 text-xs font-medium">{{ $motivo }}</span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-gray-700">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Infractor</div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-gray-700 dark:text-gray-300 break-words">
+                                            <div><span class="text-gray-400">Nombre:</span> {{ $acta->nombreinf ?: '—' }}</div>
+                                            <div><span class="text-gray-400">DNI:</span> {{ $acta->dni ? number_format($acta->dni, 0, ',', '.') : '—' }}</div>
+                                            <div><span class="text-gray-400">Domicilio:</span> {{ $acta->direcinf ?: '—' }}</div>
+                                            <div><span class="text-gray-400">N° Licencia:</span> {{ $acta->licencia ?: '—' }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-gray-700">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Vehículo</div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-gray-700 dark:text-gray-300 break-words">
+                                            <div><span class="text-gray-400">Dominio:</span> <span class="font-mono font-bold">{{ $acta->dominio ?: '—' }}</span></div>
+                                            <div><span class="text-gray-400">Marca:</span> {{ $acta->marca_vehiculo ?: '—' }}</div>
+                                            <div><span class="text-gray-400">Tipo:</span> {{ $acta->tipo_rodado ?: '—' }}</div>
+                                            <div><span class="text-gray-400">Modelo:</span> {{ $acta->modelo ?: '—' }}</div>
+                                            @if($acta->chasis)
+                                                <div><span class="text-gray-400">Chasis:</span> {{ $acta->chasis }}</div>
+                                            @endif
+                                            @if($acta->motor)
+                                                <div><span class="text-gray-400">Motor:</span> {{ $acta->motor }}</div>
+                                            @endif
+                                            @if($acta->grad_alcohol > 0)
+                                                <div class="text-red-600 dark:text-red-400 font-semibold">
+                                                    <span class="text-gray-400 font-normal">Alcohol:</span> {{ $acta->grad_alcohol }}‰
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-gray-700">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Medidas e Inspector</div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-gray-700 dark:text-gray-300 break-words">
+                                            <div class="sm:col-span-2 flex flex-wrap gap-1 mb-1">
+                                                @if($acta->secuestro) <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300">Secuestro</span> @endif
+                                                @if($acta->decomiso) <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Decomiso</span> @endif
+                                                @if($acta->clausura) <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">Clausura</span> @endif
+                                                @if($acta->retiene_lic) <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">Ret. Licencia</span> @endif
+                                                @if(!$acta->secuestro && !$acta->decomiso && !$acta->clausura && !$acta->retiene_lic)
+                                                    <span class="text-gray-300 dark:text-gray-600">Sin medidas preventivas</span>
+                                                @endif
+                                            </div>
+                                            <div><span class="text-gray-400">Inspector:</span> {{ $acta->inspector_nombre ?: '—' }}</div>
+                                            <div><span class="text-gray-400">Departamento:</span> {{ $acta->departamento_nombre ?: '—' }}</div>
+                                            <div><span class="text-gray-400">Lugar:</span> {{ $acta->lugarinfra ?: '—' }}</div>
+                                            <div>
+                                                <span class="text-gray-400">Estado:</span> {{ $estados[$acta->estado] ?? $acta->estado }}
+                                                @if($acta->motivo_baja)
+                                                    <span class="text-red-500 dark:text-red-400">({{ $acta->motivo_baja }})</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-gray-700">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Origen y carga</div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-gray-700 dark:text-gray-300 break-words">
+                                            @if($acta->preacta_id > 0)
+                                                <div><span class="text-gray-400">Origen:</span> Cámara (preacta #{{ $acta->preacta_id }})</div>
+                                                <div><span class="text-gray-400">Preacta confirmada:</span> {{ $acta->preacta_confirmada ? 'Sí' : 'No' }}</div>
+                                                @if($acta->preacta_fecha)
+                                                    <div><span class="text-gray-400">Captura:</span> {{ \Carbon\Carbon::parse($acta->preacta_fecha)->format('d/m/Y') }} {{ substr($acta->preacta_hora ?? '', 0, 5) }}</div>
+                                                @endif
+                                                @if($acta->preacta_lugar)
+                                                    <div><span class="text-gray-400">Lugar de captura:</span> {{ $acta->preacta_lugar }}</div>
+                                                @endif
+                                            @else
+                                                <div class="sm:col-span-2"><span class="text-gray-400">Origen:</span> Manual{{ $acta->operativo_id == -1 ? ' (sistema de actas)' : '' }}</div>
+                                            @endif
+                                            <div><span class="text-gray-400">Cargada por:</span> {{ $acta->crea_user ?: '—' }}</div>
+                                            <div><span class="text-gray-400">Fecha de carga:</span> {{ $acta->crea_fecha ? \Carbon\Carbon::parse($acta->crea_fecha)->format('d/m/Y') : '—' }}</div>
+                                        </div>
+                                    </div>
+
+                                    @if($acta->nombreden || $acta->dniden || $acta->direcden)
+                                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-gray-700">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Denunciante</div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-1 text-gray-700 dark:text-gray-300 break-words">
+                                            <div><span class="text-gray-400">Nombre:</span> {{ $acta->nombreden ?: '—' }}</div>
+                                            <div><span class="text-gray-400">DNI:</span> {{ $acta->dniden ? number_format($acta->dniden, 0, ',', '.') : '—' }}</div>
+                                            <div><span class="text-gray-400">Domicilio:</span> {{ $acta->direcden ?: '—' }}</div>
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    @if($acta->obs)
+                                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-100 dark:border-gray-700">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Observaciones</div>
+                                        <div class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{{ $acta->obs }}</div>
+                                    </div>
+                                    @endif
+
+                                    @if(count($acta->fotos) > 0)
+                                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg p-3 border border-sky-100 dark:border-sky-900/40">
+                                        <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            Fotos ({{ count($acta->fotos) }})
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach($acta->fotos as $idx => $fotoUrl)
+                                            <button type="button"
+                                                    @click.stop="indiceActual = {{ $idx }}; fotoActual = fotos[{{ $idx }}]"
+                                                    class="relative group overflow-hidden rounded-md w-20 h-20 flex-shrink-0 border-2 border-sky-200 dark:border-sky-700 hover:border-sky-400 dark:hover:border-sky-500 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400">
+                                                <img src="{{ $fotoUrl }}"
+                                                     alt="Foto {{ $idx + 1 }} acta #{{ $acta->actanro }}"
+                                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                                     loading="lazy">
+                                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+                                                    <svg class="w-5 h-5 text-white opacity-0 group-hover:opacity-100 drop-shadow transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zm-3-4v1m0 3h.01"/>
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                </div>
+
+                                {{-- Lightbox de fotos --}}
+                                <div x-show="fotoActual !== null"
+                                     x-cloak
+                                     class="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
+                                     @click.self="fotoActual = null"
+                                     @keydown.escape.window="fotoActual = null"
+                                     @keydown.arrow-left.window="if(fotoActual !== null && indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
+                                     @keydown.arrow-right.window="if(fotoActual !== null && indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }">
+
+                                    <button type="button" @click="fotoActual = null"
+                                            class="absolute top-4 right-4 z-10 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+
+                                    <button type="button"
+                                            x-show="fotos.length > 1"
+                                            @click="if(indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
+                                            :class="indiceActual === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                        </svg>
+                                    </button>
+
+                                    <img :src="fotoActual"
+                                         class="max-w-[90vw] max-h-[85vh] object-contain rounded shadow-2xl select-none">
+
+                                    <button type="button"
+                                            x-show="fotos.length > 1"
+                                            @click="if(indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }"
+                                            :class="indiceActual === fotos.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </button>
+
+                                    <div x-show="fotos.length > 1"
+                                         class="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-3">
+                                        <span class="text-white/70 text-sm font-mono tabular-nums" x-text="(indiceActual + 1) + ' / ' + fotos.length"></span>
+                                    </div>
+                                </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                @empty
+                    <tbody>
                         <tr>
-                            <td colspan="9" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">No hay actas con los filtros seleccionados.</td>
+                            <td colspan="10" class="px-4 py-10 text-center text-gray-400 dark:text-gray-500">No hay actas con los filtros seleccionados.</td>
                         </tr>
-                    @endforelse
-                </tbody>
+                    </tbody>
+                @endforelse
             </table>
         </div>
         <div class="px-4 py-3">

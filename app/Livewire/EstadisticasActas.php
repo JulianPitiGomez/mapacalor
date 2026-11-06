@@ -372,12 +372,23 @@ class EstadisticasActas extends Component
             ->leftJoin('fa_inspector as i', 'i.id', '=', 'a.inspector_id')
             ->leftJoin('fa_departamento as d', 'd.id', '=', 'a.dto_id')
             ->leftJoin('fa_preacta as p', 'p.ID', '=', 'a.preacta_id')
+            ->leftJoin('fa_tiporodado as t', 't.id', '=', 'a.tipo_id')
+            ->leftJoin('fa_marca as ma', 'ma.id', '=', 'a.marca_id')
+            ->leftJoin('fa_motivobajaacta as mb', 'mb.id', '=', 'a.motivobaja_id')
             ->select(
                 'a.id', 'a.actanro', 'a.fecha', 'a.hora', 'a.nombreinf', 'a.dni', 'a.dominio',
                 'a.lugarinfra', 'a.estado', 'a.preacta_id',
                 'a.secuestro', 'a.decomiso', 'a.clausura', 'a.retiene_lic',
+                // Datos del detalle desplegable
+                'a.direcinf', 'a.licencia', 'a.modelo', 'a.chasis', 'a.motor',
+                'a.obs', 'a.grad_alcohol', 'a.operativo_id',
+                'a.nombreden', 'a.dniden', 'a.direcden',
+                'a.crea_user', 'a.crea_fecha',
                 DB::raw('i.nombre as inspector_nombre'),
                 DB::raw('d.nombre as departamento_nombre'),
+                DB::raw('t.nombre as tipo_rodado'),
+                DB::raw('ma.nombre as marca_vehiculo'),
+                DB::raw('mb.nombre as motivo_baja'),
                 DB::raw('p.FECHA as preacta_fecha'),
                 DB::raw('p.HORA as preacta_hora'),
                 DB::raw('p.LUGARINFRA as preacta_lugar'),
@@ -386,6 +397,29 @@ class EstadisticasActas extends Component
             ->orderByDesc('a.fecha')
             ->orderByDesc('a.hora')
             ->paginate(15);
+
+        // Fotos de las actas de la página: mismo esquema de nombres que en
+        // Estadísticas Operativos (fot-<actanro 10 dígitos>-<001..005>.jpg).
+        $fotosPath = rtrim(config('services.actas.fotos_path') ?? public_path('fotos'), '/\\');
+        $fotosUrl = rtrim(config('services.actas.fotos_url') ?? url('fotos'), '/');
+        $actas->getCollection()->each(function ($acta) use ($fotosPath, $fotosUrl) {
+            $nro = str_pad((string) $acta->actanro, 10, '0', STR_PAD_LEFT);
+            $fotos = [];
+            for ($i = 1; $i <= 5; $i++) {
+                $nombre = 'fot-'.$nro.'-'.str_pad((string) $i, 3, '0', STR_PAD_LEFT).'.jpg';
+                if (@file_exists($fotosPath.DIRECTORY_SEPARATOR.$nombre)) {
+                    $fotos[] = $fotosUrl.'/'.$nombre;
+                }
+            }
+            $acta->fotos = $fotos;
+
+            // En faltas los campos vacíos vienen como ' ', '-' o 0 según el campo, así
+            // que se normalizan a null para que el detalle muestre un guión y no basura.
+            foreach (['nombreinf', 'direcinf', 'modelo', 'chasis', 'motor', 'obs', 'lugarinfra', 'nombreden', 'direcden', 'licencia'] as $campo) {
+                $valor = trim((string) ($acta->{$campo} ?? ''));
+                $acta->{$campo} = ($valor === '' || $valor === '-' || $valor === '0') ? null : $valor;
+            }
+        });
 
         // Motivos solo de las actas de la página (por índice de acta_id, sin joins en la paginada)
         $motivosPorActa = DB::connection('mysql_faltas')->table('fa_acta_motivo as am')
