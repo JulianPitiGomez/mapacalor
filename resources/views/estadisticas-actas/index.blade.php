@@ -6,7 +6,9 @@
     </x-slot>
 
     <div class="py-2">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        {{-- Más ancho que el max-w-7xl del resto: el listado de actas tiene diez
+             columnas y con 1280px la de Estado quedaba fuera de vista. --}}
+        <div class="max-w-[1700px] mx-auto sm:px-6 lg:px-8">
             <livewire:estadisticas-actas />
         </div>
     </div>

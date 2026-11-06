@@ -16,7 +16,13 @@
     $medidasConMedida = (int) ($medidas->con_medida ?? 0);
 @endphp
 
-<div>
+{{-- El visor de fotos vive acá arriba, fuera de la tabla: dentro de una celda
+     sticky quedaba encerrado en su propio contexto de apilamiento, así que el
+     fondo se superponía y la imagen no se centraba en la pantalla. Las miniaturas
+     lo abren con el evento 'abrir-fotos'. --}}
+<div x-data="{ fotos: [], fotoActual: null, indiceActual: 0 }"
+     @abrir-fotos.window="fotos = $event.detail.fotos; indiceActual = $event.detail.indice; fotoActual = fotos[indiceActual]"
+     x-effect="document.body.style.overflow = fotoActual !== null ? 'hidden' : ''">
     {{-- ================================================================ --}}
     {{-- FILTROS                                                           --}}
     {{-- ================================================================ --}}
@@ -326,9 +332,7 @@
                          y comparten el estado de Alpine del desplegable. --}}
                     <tbody class="border-t border-gray-100 dark:border-gray-700"
                            wire:key="acta-{{ $acta->id }}"
-                           x-data="{ detalle: false, fotoActual: null, indiceActual: 0, fotos: [] }"
-                           x-init="fotos = JSON.parse($el.dataset.fotos || '[]')"
-                           data-fotos="{{ json_encode($acta->fotos) }}">
+                           x-data="{ detalle: false }">
                         <tr @click="detalle = !detalle"
                             class="group cursor-pointer transition-colors"
                             :class="detalle ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'">
@@ -524,7 +528,7 @@
                                         <div class="flex flex-wrap gap-2">
                                             @foreach($acta->fotos as $idx => $fotoUrl)
                                             <button type="button"
-                                                    @click.stop="indiceActual = {{ $idx }}; fotoActual = fotos[{{ $idx }}]"
+                                                    @click.stop="$dispatch('abrir-fotos', { fotos: {{ Js::from($acta->fotos) }}, indice: {{ $idx }} })"
                                                     class="relative group overflow-hidden rounded-md w-20 h-20 flex-shrink-0 border-2 border-sky-200 dark:border-sky-700 hover:border-sky-400 dark:hover:border-sky-500 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400">
                                                 <img src="{{ $fotoUrl }}"
                                                      alt="Foto {{ $idx + 1 }} acta #{{ $acta->actanro }}"
@@ -542,51 +546,6 @@
                                     @endif
 
                                 </div>
-
-                                {{-- Lightbox de fotos --}}
-                                <div x-show="fotoActual !== null"
-                                     x-cloak
-                                     class="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center"
-                                     @click.self="fotoActual = null"
-                                     @keydown.escape.window="fotoActual = null"
-                                     @keydown.arrow-left.window="if(fotoActual !== null && indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
-                                     @keydown.arrow-right.window="if(fotoActual !== null && indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }">
-
-                                    <button type="button" @click="fotoActual = null"
-                                            class="absolute top-4 right-4 z-10 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-
-                                    <button type="button"
-                                            x-show="fotos.length > 1"
-                                            @click="if(indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
-                                            :class="indiceActual === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
-                                            class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                                        </svg>
-                                    </button>
-
-                                    <img :src="fotoActual"
-                                         class="max-w-[90vw] max-h-[85vh] object-contain rounded shadow-2xl select-none">
-
-                                    <button type="button"
-                                            x-show="fotos.length > 1"
-                                            @click="if(indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }"
-                                            :class="indiceActual === fotos.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
-                                            class="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                        </svg>
-                                    </button>
-
-                                    <div x-show="fotos.length > 1"
-                                         class="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-3">
-                                        <span class="text-white/70 text-sm font-mono tabular-nums" x-text="(indiceActual + 1) + ' / ' + fotos.length"></span>
-                                    </div>
-                                </div>
                                 </div>
                             </td>
                         </tr>
@@ -602,6 +561,57 @@
         </div>
         <div class="px-4 py-3">
             {{ $actas->links('vendor.livewire.tailwind-sin-resumen') }}
+        </div>
+    </div>
+
+    {{-- ================================================================ --}}
+    {{-- VISOR DE FOTOS                                                    --}}
+    {{-- Fuera de la tabla para que tape toda la pantalla: lo abren las     --}}
+    {{-- miniaturas del detalle con el evento 'abrir-fotos'.                --}}
+    {{-- ================================================================ --}}
+    <div x-show="fotoActual !== null"
+         x-cloak
+         class="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center overscroll-contain"
+         @click.self="fotoActual = null"
+         @wheel.prevent
+         @touchmove.prevent
+         @keydown.escape.window="fotoActual = null"
+         @keydown.arrow-left.window="if(fotoActual !== null && indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
+         @keydown.arrow-right.window="if(fotoActual !== null && indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }">
+
+        <button type="button" @click="fotoActual = null"
+                class="absolute top-4 right-4 z-10 text-white bg-black/50 rounded-full p-2 hover:bg-black/80 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+
+        <button type="button"
+                x-show="fotos.length > 1"
+                @click="if(indiceActual > 0){ indiceActual--; fotoActual = fotos[indiceActual]; }"
+                :class="indiceActual === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
+                class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </button>
+
+        <img :src="fotoActual"
+             class="max-w-[90vw] max-h-[85vh] object-contain rounded shadow-2xl select-none">
+
+        <button type="button"
+                x-show="fotos.length > 1"
+                @click="if(indiceActual < fotos.length - 1){ indiceActual++; fotoActual = fotos[indiceActual]; }"
+                :class="indiceActual === fotos.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-black/80'"
+                class="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white bg-black/50 rounded-full p-3 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+
+        <div x-show="fotos.length > 1"
+             class="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-3">
+            <span class="text-white/70 text-sm font-mono tabular-nums" x-text="(indiceActual + 1) + ' / ' + fotos.length"></span>
         </div>
     </div>
 </div>
